@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+: "${RESTIC_FROM_REPOSITORY:?Local Restic repository is not configured}"
+: "${RESTIC_REPOSITORY:?R2 repository is not configured}"
+: "${RESTIC_PASSWORD_FILE:?R2 repository password file is not configured}"
+: "${RESTIC_FROM_PASSWORD_FILE:?Local repository password file is not configured}"
+: "${AWS_ACCESS_KEY_ID:?R2 access key is not configured}"
+: "${AWS_SECRET_ACCESS_KEY:?R2 secret key is not configured}"
+: "${AWS_DEFAULT_REGION:?S3 region is not configured}"
+
+if [[ ! -f "$RESTIC_FROM_REPOSITORY/config" ]]; then
+  printf 'ERROR: Local Restic repository is unavailable or uninitialized: %s\n' \
+    "$RESTIC_FROM_REPOSITORY" >&2
+  exit 1
+fi
+
+for password_file in \
+  "$RESTIC_PASSWORD_FILE" \
+  "$RESTIC_FROM_PASSWORD_FILE"
+do
+  if [[ ! -r "$password_file" ]]; then
+    printf 'ERROR: Required Restic password file is unreadable: %s\n' \
+      "$password_file" >&2
+    exit 1
+  fi
+done
+
+printf '[%s] Starting off-site Restic snapshot copy.\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')"
+
+restic \
+  --repo "$RESTIC_REPOSITORY" \
+  --password-file "$RESTIC_PASSWORD_FILE" \
+  copy \
+  --from-repo "$RESTIC_FROM_REPOSITORY" \
+  --from-password-file "$RESTIC_FROM_PASSWORD_FILE" \
+  --verbose
+
+printf '[%s] Off-site Restic snapshot copy completed successfully.\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')"

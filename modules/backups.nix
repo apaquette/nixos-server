@@ -4,6 +4,13 @@
 let
   repository = "/mnt/backup/Restic/homelab";
   passwordFile = config.sops.secrets."restic-repository-password".path;
+
+  r2AccountId = "08a653e653431727545c1cbbc844423d";
+  r2Bucket = "homelab-restic";
+  r2Prefix = "homelab";
+
+  r2Repository = "s3:https://${r2AccountId}.r2.cloudflarestorage.com/${r2Bucket}/${r2Prefix}";
+
   immichUploadLocation = builtins.dirOf config.services.immich.mediaLocation;
 
   backupOrder = [
@@ -423,7 +430,9 @@ let
         after = [
           "restic-backups-maintenance.service"
         ];
-
+        onSuccess = [
+          "restic-offsite-copy.service"
+        ];
         onFailure = [
           "homelab-backup-notify@%p.service"
         ];
@@ -432,8 +441,63 @@ let
           repository
         ];
       };
-    };
+    
 
+
+      "restic-offsite-copy" = {
+        description = "Copy Restic snapshots to Cloudflare R2";
+
+        after = [
+          "network-online.target"
+          "mnt-backup.mount"
+          "restic-backups-maintenance.service"
+          "restic-backups-check.service"
+        ];
+
+        wants = [
+          "network-online.target"
+        ];
+
+        requires = [
+          "mnt-backup.mount"
+        ];
+
+        onFailure = [
+          "homelab-backup-notify@%p.service"
+        ];
+
+        unitConfig.RequiresMountsFor = [
+          repository
+        ];
+
+        path = [
+          pkgs.restic
+	  pkgs.bash
+        ];
+
+        environment = {
+          RESTIC_REPOSITORY = r2Repository;
+          RESTIC_PASSWORD_FILE =
+            config.sops.secrets."restic-r2-repository-password".path;
+
+          RESTIC_FROM_REPOSITORY = repository;
+          RESTIC_FROM_PASSWORD_FILE = passwordFile;
+
+          AWS_DEFAULT_REGION = "auto";
+
+	  HOME = "/var/lib/restic-offsite";
+	  XDG_CACHE_HOME = "/var/cache/restic-offsite";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+          EnvironmentFile = config.sops.templates."restic-r2.env".path;
+	  StateDirectory = "restic-offsite";
+	  CacheDirectory = "restic-offsite";
+          ExecStart = "/etc/homelab/scripts/restic-offsite-copy";
+        };
+      };
+   };
 in
 {
   services.restic.backups =
@@ -481,4 +545,12 @@ in
     };
 
   systemd.services = appBackupSystemdOverrides;
+  systemd.timers."restic-offsite-copy" = {
+    wantedBy = [ "timers.target" ];
+  
+    timerConfig = {
+      OnCalendar = "Mon..Sat *-*-* 08:00:00";
+      Persistent = false;
+    };
+  };
 }

@@ -174,6 +174,21 @@ let
       "/var/lib/private/ntfy-sh")
   ];
 
+  resticCheckService =
+    config.systemd.services."restic-backups-check" or {};
+
+  offsiteCopy =
+    config.systemd.services."restic-offsite-copy" or {};
+
+  offsiteCopyTimer =
+    config.systemd.timers."restic-offsite-copy" or {};
+
+  r2EnvTemplate =
+    config.sops.templates."restic-r2.env" or {};
+  offsiteCopyScript =
+    builtins.readFile ../scripts/restic-offsite-copy;
+
+
 in
 lib.flatten [
   # --------------------------------------------------------------------------
@@ -728,4 +743,128 @@ lib.flatten [
     message =
       "Restic check must run Sunday at 06:00.";
   }
+
+  # v1.1.0 — Off-site Restic replication
+
+  {
+    assertion =
+      builtins.hasAttr "restic-offsite-copy"
+        config.systemd.services;
+    message =
+      "Off-site Restic copy service must be defined.";
+  }
+
+  {
+    assertion =
+      builtins.hasAttr "restic-offsite-copy"
+        config.systemd.timers;
+    message =
+      "Off-site Restic copy timer must be defined.";
+  }
+
+  {
+    assertion =
+      builtins.hasAttr "restic-r2.env"
+        config.sops.templates;
+    message =
+      "R2 credentials must use a SOPS-managed environment template.";
+  }
+
+  {
+    assertion =
+      builtins.pathExists ../scripts/restic-offsite-copy;
+    message =
+      "Off-site Restic replication script must exist.";
+  }
+
+  (helpers.assertEqual
+    "Off-site copy service type"
+    "oneshot"
+    (offsiteCopy.serviceConfig.Type or null))
+
+  (helpers.assertContains
+    "Off-site copy requires local backup storage"
+    "mnt-backup.mount"
+    (offsiteCopy.requires or []))
+
+  (helpers.assertContains
+    "Off-site copy requires local repository mount"
+    "/mnt/backup/Restic/homelab"
+    (offsiteCopy.unitConfig.RequiresMountsFor or []))
+
+  (helpers.assertContains
+    "Off-site copy failure notification"
+    "homelab-backup-notify@%p.service"
+    (offsiteCopy.onFailure or []))
+
+  (helpers.assertEqual
+    "Off-site copy EnvironmentFile"
+    (r2EnvTemplate.path or null)
+    (offsiteCopy.serviceConfig.EnvironmentFile or null))
+
+  (helpers.assertEqual
+    "Off-site copy runs Monday through Saturday at 08:00"
+    "Mon..Sat *-*-* 08:00:00"
+    (offsiteCopyTimer.timerConfig.OnCalendar or null))
+
+  (helpers.assertEqual
+    "Off-site timer does not replay missed weekday runs on Sunday"
+    false
+    (offsiteCopyTimer.timerConfig.Persistent or null))
+
+  (helpers.assertContains
+    "Off-site copy runs after Restic maintenance"
+    "restic-backups-maintenance.service"
+    (offsiteCopy.after or []))
+
+  (helpers.assertContains
+    "Off-site copy runs after Restic integrity check"
+    "restic-backups-check.service"
+    (offsiteCopy.after or []))
+
+  {
+    assertion =
+      builtins.hasInfix "--from-repo" offsiteCopyScript;
+    message =
+      "Off-site copy must specify the source repository.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--from-password-file" offsiteCopyScript;
+    message =
+      "Off-site copy must use the source repository password.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--password-file" offsiteCopyScript;
+    message =
+      "Off-site copy must use the destination repository password.";
+  }
+
+  (helpers.assertEqual
+    "Off-site source repository"
+    "/mnt/backup/Restic/homelab"
+    offsiteCopy.environment.RESTIC_FROM_REPOSITORY)
+
+  (helpers.assertEqual
+    "Off-site source password file"
+    config.sops.secrets."restic-repository-password".path
+    offsiteCopy.environment.RESTIC_FROM_PASSWORD_FILE)
+
+  (helpers.assertEqual
+    "Off-site destination password file"
+    config.sops.secrets."restic-r2-repository-password".path
+    offsiteCopy.environment.RESTIC_PASSWORD_FILE)
+
+  (helpers.assertEqual
+    "Cloudflare R2 region"
+    "auto"
+    offsiteCopy.environment.AWS_DEFAULT_REGION)
+
+  (helpers.assertContains
+    "Successful Restic integrity check triggers off-site replication"
+    "restic-offsite-copy.service"
+    (resticCheckService.onSuccess or []))
 ]

@@ -71,6 +71,40 @@ sops.secrets."restic-repository-password" = {
   mode = "0400";
 };
 
+
+  sops.secrets."restic-r2-access-key-id" = {
+    key = "restic/r2_access_key_id";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
+
+  sops.secrets."restic-r2-secret-access-key" = {
+    key = "restic/r2_secret_access_key";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
+
+  sops.secrets."restic-r2-repository-password" = {
+    key = "restic/r2_repository_password";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
+
+  sops.templates."restic-r2.env" = {
+    content = ''
+      AWS_ACCESS_KEY_ID=${config.sops.placeholder."restic-r2-access-key-id"}
+      AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."restic-r2-secret-access-key"}
+    '';
+
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
+
+
   environment.etc."smartd-ntfy-token".source =
     config.sops.secrets."smartd-ntfy-token".path;
 
