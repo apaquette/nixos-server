@@ -12,7 +12,8 @@ This project focuses on infrastructure engineering rather than simply hosting ap
 * **Service orchestration with systemd** — Application lifecycle, ordering, dependencies, scheduled jobs, persistent mounts, and failure handling are expressed through native systemd units rather than ad-hoc shell orchestration.
 * **Database-aware backups** — Stateful applications such as Nextcloud and Immich use PostgreSQL custom-format dumps captured alongside their persistent application data, providing a consistent recovery boundary.
 * **Automated backup lifecycle** — Restic backups are scheduled and ordered declaratively, with service quiescing, cleanup, retention, pruning, repository integrity checks, and failure notifications handled automatically.
-* **Restore validation** — Backups are validated from real Restic snapshots, including database structure checks and byte-level filesystem restoration tests, rather than treating a successful backup command as proof of recoverability.
+* **Off-site backup replication** — The local Restic repository is copied to a separate Cloudflare R2 repository, with scheduled weekday replication and a Sunday integrity-check success trigger.
+* **Automated restore validation** — A weekly restore test retrieves a representative `ntfy` snapshot from R2, validates a restored database file, cleans up temporary data, and uses the existing failure-notification path. This smoke test complements, but does not replace, full application recovery testing.
 * **Encrypted secret management** — sops-nix keeps credentials and API tokens encrypted in Git while exposing them to services only through controlled runtime secret files and generated environment configuration.
 * **Layered monitoring** — Beszel, Uptime Kuma, custom storage-health checks, and failure notifications provide complementary views of host health, service availability, filesystem capacity, and operational failures.
 * **Internal and external service isolation** — Caddy provides reverse-proxy and TLS termination, with separate public and LAN-only service exposure and dnsmasq providing local service discovery.
@@ -29,7 +30,7 @@ This project focuses on infrastructure engineering rather than simply hosting ap
 * **dnsmasq** for LAN DNS and DHCP
 * **PostgreSQL 17** for stateful applications
 * **sops-nix** for encrypted secrets and runtime secret deployment
-* **Restic** for application backups, retention, pruning, and integrity checks
+* **Restic** for local application backups, retention/pruning, integrity checks, Cloudflare R2 replication, and restore testing
 * **Declarative monitoring** for storage, services, and system health
 * **Automated configuration tests** plus NixOS VM validation
 
@@ -121,7 +122,9 @@ Application services are managed as native NixOS services where practical. Persi
 │   └── declarative and VM-level validation
 └── docs/
     ├── architecture.md
-    └── backup-and-restore.md
+    ├── backup-and-restore.md
+    ├── disaster-recovery.md
+    └── roadmap.md
 ```
 
 The configuration is organized around composable NixOS modules rather than a single monolithic host definition.
@@ -149,9 +152,11 @@ The backup system provides:
 * repository integrity checks
 * failure notifications through ntfy
 
-The Restic repository is stored on dedicated backup storage rather than the primary application volume.
+The primary Restic repository is stored on dedicated local backup storage rather than the primary application volume. It is replicated to a separate Cloudflare R2 repository. A weekly scheduled restore test retrieves a representative snapshot from R2 and validates a restored file.
 
-Detailed procedures and backup scopes are documented in [`docs/backup-and-restore.md`](docs/backup-and-restore.md).
+The remote repository has been checked and restored from manually, and the automated restore test has passed. The full recovery path still depends on secure off-host recovery of the SOPS age key and repository credentials. The current configuration also requires an explicit decision on independent R2 retention and recurring remote integrity checks.
+
+Operational schedules and limitations are documented in [`docs/backup-and-restore.md`](docs/backup-and-restore.md). The full-host runbook is [`docs/disaster-recovery.md`](docs/disaster-recovery.md).
 
 ## Validation
 
@@ -208,21 +213,23 @@ The v1.0 migration establishes the production baseline. Future development is fo
 
 | Version  | Focus                                                               | Status   |
 | -------- | ------------------------------------------------------------------- | -------- |
-| **v1.0** | Debian → NixOS migration, native services, sops-nix, Restic backups | Complete |
-| **v1.1** | Off-site backups, automated restore testing, disaster recovery      | Planned  |
-| **v1.2** | CI, NixOS VM testing, deployment validation                         | Planned  |
-| **v1.3** | Backup observability, SMART monitoring, recovery alerting           | Planned  |
-| **v2.0** | Second host, WireGuard, selective infrastructure redundancy         | Future   |
+| **v1.0.0** | Debian → NixOS migration, native services, sops-nix, Restic backups | Complete |
+| **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Implementation delivered; readiness checks open |
+| **v1.2.0** | CI, NixOS VM testing, deployment validation | Planned |
+| **v1.3.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
+| **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
-The highest-priority next step is to establish **independent off-site backups and automated restore testing**. This shifts the project from having a tested backup mechanism to having a tested recovery strategy.
+The v1.1.0 core implementation provides off-site replication, automated representative restore testing, and a disaster-recovery runbook. Release completion still requires verification of off-host age-key recovery, an explicit R2 retention/integrity policy, and a review or rehearsal of the documented recovery procedure.
 
-See [`docs/roadmap.md`](docs/roadmap.md) for the detailed roadmap and planned engineering work.
+See [`docs/roadmap.md`](docs/roadmap.md) for release acceptance criteria and planned engineering work.
 
 
 ## Documentation
 
 * [Architecture](docs/architecture.md)
 * [Backup and Restore](docs/backup-and-restore.md)
+* [Disaster Recovery](docs/disaster-recovery.md)
+* [Roadmap](docs/roadmap.md)
 
 ## License
 

@@ -58,58 +58,54 @@ Future work is therefore focused primarily on **architecture, reliability, autom
 
 ---
 
-# v1.1 — Reliability
+# v1.1.0 — Reliability
 
-**Priority: High**
+**Priority: High — implementation delivered; recovery-readiness validation remains open.**
 
-The first major enhancement is to remove the remaining single-site dependency from the backup strategy and make recovery more demonstrably reliable.
+The purpose of this milestone is to add an off-host backup copy, automate a representative restore test, and document recovery after complete host loss. The configuration and test currently implement the items below, but the milestone should not be marked fully complete until the remaining readiness items are resolved.
 
 ### Off-site Restic backups
 
-Replicate the local Restic repository to an independent off-site location.
+**Implemented and runtime-verified:**
 
-Goals:
+* The local Restic repository at `/mnt/backup/Restic/homelab` is copied to a separate Cloudflare R2 Restic repository.
+* Scheduled replication runs Monday–Saturday at 08:00.
+* A successful Sunday 06:00 local repository integrity check triggers replication through a systemd `OnSuccess` relationship.
+* Replication failures use the existing ntfy failure-notification service.
+* A manual remote integrity check and representative restore have succeeded; subsequent scheduled Sunday and Monday replication runs were also confirmed successful.
 
-* Protect against host failure, filesystem failure, theft, and other site-level events.
-* Keep the existing local repository for fast recovery.
-* Maintain encrypted backups without exposing repository contents to the remote storage provider.
-* Document recovery from the off-site repository rather than treating replication as sufficient by itself.
-* Ensure the off-site copy has an independently verifiable retention and integrity model.
+**Remaining reliability work:**
+
+* Confirm that the SOPS age private key and all credentials required to reach and decrypt R2 are recoverable independently of the original host.
+* Define and test an R2-specific retention/pruning policy. The local policy is not proof of remote pruning, and the current reviewed configuration does not declare automatic R2 retention.
+* Decide whether to add a recurring R2-side repository integrity check and replication-freshness monitoring.
 
 ### Automated restore testing
 
-Turn backup verification into an automated recovery test.
+**Implemented and manually verified:**
 
-Possible implementation:
+* A weekly Tuesday 09:00 systemd timer runs `restic-offsite-restore-test.service`.
+* The script restores the latest remote snapshot tagged `ntfy` into a temporary directory.
+* It verifies that the restored `auth.db` exists and is non-empty, cleans up the temporary directory, and reports failures through the existing notification path.
+* The first manual service execution passed, restoring an `auth.db` file of 118,784 bytes.
 
-1. Select representative application data from recent snapshots.
-2. Restore it into a temporary location or isolated test environment.
-3. Validate expected files and database dumps.
-4. Report success or failure through the existing monitoring and notification system.
-
-The objective is to verify **recoverability**, not merely repository integrity.
+This proves that a representative file can be retrieved from the R2 repository. It does not prove a complete database or whole-application recovery. Broader application recovery tests may be added when useful, without expanding the scheduled smoke test unnecessarily.
 
 ### Disaster-recovery procedure
 
-Document the complete recovery sequence for a total host replacement:
+**Documentation added in this milestone:**
 
-```text
-Install NixOS
-    ↓
-Restore repository access / secrets
-    ↓
-Apply declarative system configuration
-    ↓
-Restore application state from Restic
-    ↓
-Restore databases
-    ↓
-Validate services
-    ↓
-Return production traffic
-```
+* [`docs/disaster-recovery.md`](disaster-recovery.md) describes independent prerequisites, bootstrap of a replacement NixOS host, restoration from R2, application/data recovery order, and validation.
+* [`docs/backup-and-restore.md`](backup-and-restore.md) describes the current schedules, retention boundary, integrity checks, restore-test behavior, and known limitations.
 
-The recovery procedure should be executable by following the documentation without relying on undocumented knowledge of the original host.
+**Before v1.1.0 is declared complete:**
+
+1. Verify and document that the age private key is stored securely outside the host and can be recovered by an authorized operator.
+2. Review the R2 retention and recurring integrity-check policy; implement the decisions appropriate for this system.
+3. Perform a recovery walkthrough or rehearsal from a separate machine, using the runbook without relying on the original host for secrets.
+4. Run `nix flake check --show-trace`, review the configuration and documentation diffs, and commit the release changes.
+
+The runbook deliberately avoids storing secrets in Git and warns operators to inspect target disks before running any installation or Disko-related operation that could format storage.
 
 ---
 
@@ -588,16 +584,14 @@ This allows the project to evolve from a single-host infrastructure configuratio
 
 The roadmap is intentionally ordered by operational and architectural value:
 
-| Version  | Focus                                                                     | Priority |
-| -------- | ------------------------------------------------------------------------- | -------- |
-| **v1.0** | NixOS infrastructure and native service architecture                      | Complete |
-| **v1.1** | Off-site backups, restore testing, disaster recovery                      | High     |
-| **v1.2** | Host-agnostic architecture, multi-host testing, CI, deployment validation | High     |
-| **v1.3** | Backup observability, SMART monitoring, recovery alerting                 | Medium   |
-| **v2.0** | Secondary host, WireGuard, selective redundancy                           | Future   |
+| Version | Focus | Status |
+|---|---|---|
+| **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
+| **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Implementation delivered; readiness items open |
+| **v1.2.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
+| **v1.3.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
+| **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
-The immediate architectural goal is **v1.2**: make the current infrastructure genuinely reusable across hosts before introducing distributed infrastructure.
+The v1.1.0 implementation now includes off-site replication, a scheduled representative restore test, and a disaster-recovery runbook. Do not treat v1.1.0 as fully closed until off-host recovery of the SOPS age key is verified, R2 retention/integrity decisions are addressed, and the documented recovery procedure has been reviewed or rehearsed.
 
-The next major reliability goal is **v1.1**: maintain an independent recovery path and demonstrate that backups can actually be restored.
-
-Together, these milestones establish the foundation for later infrastructure expansion without prematurely introducing the operational complexity of a distributed system.
+The next major development milestone after v1.1.0 remains **v1.2.0**: make the current infrastructure genuinely reusable across hosts before introducing distributed infrastructure.

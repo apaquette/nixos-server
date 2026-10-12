@@ -188,32 +188,59 @@ Failure paths send notifications through ntfy.
 
 ## Backup architecture
 
-Backups use Restic with a repository on dedicated backup storage.
-
-The backup system is structured as:
+Restic provides both a local recovery path and an off-site copy. Application snapshots are written to the local repository on the dedicated backup disk:
 
 ```text
-systemd timers
-      │
-      ▼
-application backup service
-      │
-      ├── prepare application state
-      ├── create database dump when required
-      ├── capture persistent filesystem state
-      └── write Restic snapshot
-                │
-                ▼
-       Restic repository
-                │
-          retention / prune
-                │
-          integrity check
+/mnt/backup/Restic/homelab
 ```
 
-Application backup jobs run sequentially so that resource-intensive snapshots do not overlap unnecessarily and stateful services have predictable stop/start behavior.
+The local repository is replicated to a separate Restic repository in Cloudflare R2:
 
-See [`backup-and-restore.md`](backup-and-restore.md) for exact backup scopes, schedules, retention, and recovery procedures.
+```text
+s3:https://<account-id>.r2.cloudflarestorage.com/homelab-restic/homelab
+```
+
+The account identifier and repository path are configuration, not credentials. R2 access keys and the remote repository password are managed through sops-nix; secret values must not be written into documentation or Git.
+
+The operational flow is:
+
+```text
+Application backup timers (02:30–05:00)
+                 │
+                 ▼
+       Local Restic repository
+                 │
+                 ▼
+       Maintenance / pruning
+       daily at 05:30
+                 │
+                 ▼
+       Local integrity check
+       Sundays at 06:00
+                 │
+                 ├── successful scheduled check triggers R2 copy
+                 │
+                 └── failed check sends failure notification
+
+R2 replication timer: Monday–Saturday at 08:00
+R2 restore test: Tuesday at 09:00
+```
+
+Application backup jobs are represented as individual oneshot services and timers. The jobs run in a declared order, prepare application state where necessary, capture database dumps where configured, and write application-tagged snapshots. Maintenance prunes the local repository. The weekly integrity check runs after maintenance; its successful completion triggers off-site replication. A separate timer handles Monday–Saturday replication.
+
+The off-site copy service uses the local repository as its source and the R2 repository as its destination. Snapshot IDs in the two repositories may differ after copying; identify snapshots in the repository from which you intend to restore.
+
+The automated restore test runs weekly on Tuesday at 09:00. It restores the latest remote snapshot tagged `ntfy` into an isolated temporary directory, checks that the restored `auth.db` exists and is non-empty, and cleans up the temporary directory. Failures are routed through the existing ntfy notification service.
+
+The test demonstrates that a representative file can be retrieved from R2. It does not prove that every application can be fully recovered, nor does it replace a complete disaster-recovery rehearsal.
+
+Current boundaries to keep visible:
+
+* The weekly scheduled repository check is against the local repository. The R2 repository has been checked manually, but a recurring R2-side integrity-check job is not currently part of the described configuration.
+* The configuration shown does not define a separate off-site `forget`/`prune` policy. Local retention settings must not be assumed to delete old snapshots from the R2 repository. Decide and test remote retention separately before enabling automated deletion there.
+* Access to encrypted configuration and R2 data depends on recovering the SOPS age private key and the credentials/password needed to open the remote repository independently of the original host.
+
+See [`backup-and-restore.md`](backup-and-restore.md) for backup scopes and operational details, and [`disaster-recovery.md`](disaster-recovery.md) for full-host recovery.
 
 ## Configuration validation
 
@@ -259,11 +286,11 @@ The Nix configuration defines how services are installed and operated, while app
 
 This allows application state to persist independently from configuration generations.
 
-### Local backup repository
+### Local and off-site backup repositories
 
-The Restic repository is on separate physical backup storage rather than the primary RAID volume.
+The local Restic repository is on separate physical backup storage rather than the primary RAID volume, providing a fast recovery path when the host and backup disk remain available. A replicated Restic repository in Cloudflare R2 provides an off-host recovery path if the local host or its disks are lost.
 
-This protects against failures affecting the primary application storage, but it is still a local backup. It is not a substitute for an off-site or geographically independent backup.
+The remote repository introduces additional recovery dependencies: the SOPS age private key, R2 access credentials, and the R2 repository password must be obtainable without the original host. Off-site retention and recurring remote integrity verification also need explicit policies; they should not be inferred from local repository maintenance.
 
 ### Native service management
 

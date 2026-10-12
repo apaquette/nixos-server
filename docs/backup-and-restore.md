@@ -6,13 +6,19 @@ Application backups are implemented declaratively with NixOS systemd units and R
 
 The design goal is to produce recoverable snapshots of application state while preserving database consistency and keeping backup behavior reproducible.
 
-The production repository is:
+The local production repository is:
 
 ```text
 /mnt/backup/Restic/homelab
 ```
 
-The repository password is managed through sops-nix rather than stored in the Nix configuration or repository in plaintext.
+The off-site repository is a separate Restic repository in Cloudflare R2:
+
+```text
+s3:https://<account-id>.r2.cloudflarestorage.com/homelab-restic/homelab
+```
+
+The actual account identifier is configured in `modules/backups.nix`. R2 credentials and the remote repository password are managed through sops-nix. Do not copy credential values into docs, shell history, or Git. The local and remote repositories have different repository IDs; use snapshot IDs from the repository you are restoring.
 
 ## Backup model
 
@@ -27,8 +33,7 @@ backup service
     ├── prepare state
     ├── stop application when required
     ├── create database dump when required
-    ├── snapshot persistent data
-    └── restore application state
+    └── snapshot persistent data
 ```
 
 Application backups run sequentially.
@@ -117,22 +122,34 @@ This is important because backing up only the public symlink can result in a suc
 
 ## Schedule
 
-Backups are scheduled as follows:
+All times are local server time.
 
-| Time         | Job                               |
-| ------------ | --------------------------------- |
-| 02:30        | Nextcloud                         |
-| 03:00        | Immich                            |
-| 03:30        | Minecraft                         |
-| 04:00        | Jellyfin                          |
-| 04:15        | Sonarr                            |
-| 04:30        | Radarr                            |
-| 04:45        | Beszel                            |
-| 05:00        | ntfy                              |
-| 05:30        | Restic maintenance                |
-| Sunday 06:00 | Restic repository integrity check |
+### Local application backups and repository jobs
 
-Timers are persistent so missed executions can be handled when the host becomes available again.
+| Time | Job |
+|---|---|
+| Daily 02:30 | Nextcloud snapshot |
+| Daily 03:00 | Immich snapshot |
+| Daily 03:30 | Minecraft snapshot |
+| Daily 04:00 | Jellyfin snapshot |
+| Daily 04:15 | Sonarr snapshot |
+| Daily 04:30 | Radarr snapshot |
+| Daily 04:45 | Beszel snapshot |
+| Daily 05:00 | ntfy snapshot |
+| Daily 05:30 | Local Restic maintenance / pruning |
+| Sunday 06:00 | Local Restic repository integrity check |
+
+### Off-site operations
+
+| Schedule | Job |
+|---|---|
+| Monday–Saturday 08:00 | Copy new snapshots from the local repository to Cloudflare R2 |
+| Sunday, after the 06:00 check succeeds | Copy snapshots to R2 through `OnSuccess=restic-offsite-copy.service` |
+| Tuesday 09:00 | Restore-test the latest R2 snapshot tagged `ntfy` |
+
+Local application backup timers, the maintenance timer, the integrity-check timer, and the restore-test timer are configured as persistent timers. The off-site copy timer deliberately uses `Persistent = false` and only schedules Monday through Saturday. This avoids replaying a missed weekday replication activation on Sunday before the scheduled integrity check succeeds.
+
+The Sunday integrity check is a oneshot service with an `OnSuccess` trigger for the off-site copy. Manually starting that check and allowing it to succeed will also trigger off-site replication. Do not manually run it just to inspect service state.
 
 ## Retention
 
@@ -203,6 +220,48 @@ integrity check
 
 A repository check is also performed after significant cleanup operations.
 
+## Off-site replication to Cloudflare R2
+
+The `restic-offsite-copy.service` runs `scripts/restic-offsite-copy`. It copies snapshots from the local repository at `/mnt/backup/Restic/homelab` to the configured Cloudflare R2 repository. Source and destination repository passwords are separate SOPS-managed secrets. R2 access keys are supplied using the generated `restic-r2.env` environment file.
+
+The copy service is a systemd oneshot with a failure notification through `homelab-backup-notify@%p.service`. The schedule and Sunday success-trigger are declared in `modules/backups.nix` and tested in `tests/backups.nix`.
+
+A remote `restic check` and a representative remote restore have been run manually and succeeded. The weekly scheduled check currently validates the local repository; it should not be described as a scheduled R2 integrity check.
+
+### Off-site retention and integrity boundary
+
+The local repository has a declared retention policy grouped by `host,tags` (14 daily, 8 weekly, 6 monthly). The current configuration does not show an independent R2 pruning policy. Do not assume that local pruning deletes the corresponding snapshots from R2, and do not add automatic remote deletion until its retention rules and recovery implications have been tested.
+
+A separate recurring R2-side integrity check and backup-freshness alert are also not configured in the definitions reviewed for v1.1.0. These are outstanding reliability improvements, not completed functionality.
+
+## Automated restore test
+
+`restic-offsite-restore-test.service` runs weekly on Tuesday at 09:00. It uses the R2 repository and its SOPS-managed credentials to:
+
+1. Create an isolated temporary directory.
+2. Restore the latest snapshot tagged `ntfy` from R2.
+3. Verify that `var/lib/private/ntfy-sh/auth.db` exists in the restored tree and is non-empty.
+4. Remove the temporary directory on exit, including failure paths.
+5. Send a failure notification through the existing systemd notification template if the service fails.
+
+A successful run confirms that a representative file can be downloaded, decrypted, and restored from R2. It does **not** validate the semantic integrity of the database, test a live ntfy startup, or prove that Nextcloud, Immich, PostgreSQL, and all other applications can be recovered end-to-end. The test is deliberately small to reduce runtime and remote reads.
+
+Inspect the service and timer with:
+
+```bash
+systemctl status restic-offsite-restore-test.service --no-pager
+systemctl list-timers --all restic-offsite-restore-test.timer
+sudo journalctl -u restic-offsite-restore-test.service -n 100 --no-pager
+```
+
+Run the test intentionally with:
+
+```bash
+sudo systemctl start restic-offsite-restore-test.service
+```
+
+This manual start is appropriate for the restore-test service; avoid manually running the integrity-check service solely for testing because its successful completion triggers off-site replication.
+
 ## Restore validation
 
 Backups are not considered validated merely because `restic backup` exits successfully.
@@ -243,6 +302,8 @@ restic check
 A successful check reports that no repository errors were found.
 
 ## Recovery workflow
+
+For full-host recovery, use [`disaster-recovery.md`](disaster-recovery.md). The checklist below is for recovery of one application when the host and necessary secrets are still available.
 
 A normal application recovery consists of:
 
@@ -298,15 +359,17 @@ sudo nix shell nixpkgs#restic -c restic \
   check
 ```
 
-## Recovery limitations
+## Recovery limitations and remaining work
 
-The Restic repository is stored on a separate local physical disk, which provides useful isolation from the primary application volume.
+The local repository on a separate physical disk provides a fast recovery path for failures isolated to the primary data volume. The Cloudflare R2 repository adds a separate off-host copy, but a reliable full-host recovery still depends on recovering the credentials and configuration needed to access it.
 
-It does **not** provide protection against:
+The following limitations remain explicit:
 
-* loss of the entire host
-* theft or physical destruction affecting both disks
-* site-level disasters
-* compromise of the host and backup storage simultaneously
+* The SOPS age private key must have a protected copy independent of the original host. Without it, encrypted secrets in Git may not be decryptable.
+* The R2 repository password and the R2 access credentials must be recoverable through the encrypted configuration or another documented secure recovery mechanism.
+* The scheduled restore test checks one representative file from an `ntfy` snapshot; it is not a full application recovery test.
+* R2-side integrity verification is currently manual rather than scheduled.
+* The configuration reviewed for v1.1.0 has no separately declared R2 retention/pruning policy. Remote snapshot growth and cleanup need to be assessed before release completion.
+* A complete recovery from a replacement host has not been claimed merely because a representative file restore succeeded.
 
-An off-site or independently hosted backup would be the next step for stronger disaster recovery.
+Use [`disaster-recovery.md`](disaster-recovery.md) for the full-host procedure and its readiness checklist.
