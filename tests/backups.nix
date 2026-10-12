@@ -182,7 +182,25 @@ let
 
   offsiteCopyTimer =
     config.systemd.timers."restic-offsite-copy" or {};
+  restoreTest =
+    config.systemd.services."restic-offsite-restore-test" or {};
 
+  restoreTestTimer =
+    config.systemd.timers."restic-offsite-restore-test" or {};
+
+  restoreTestEnvironment =
+    restoreTest.environment or {};
+
+  restoreTestServiceConfig =
+    restoreTest.serviceConfig or {};
+
+  restoreTestTimerConfig =
+    restoreTestTimer.timerConfig or {};
+
+  restoreTestScript =
+    if builtins.pathExists ../scripts/restic-offsite-restore-test
+    then builtins.readFile ../scripts/restic-offsite-restore-test
+    else "";
   r2EnvTemplate =
     config.sops.templates."restic-r2.env" or {};
   offsiteCopyScript =
@@ -867,4 +885,120 @@ lib.flatten [
     "Successful Restic integrity check triggers off-site replication"
     "restic-offsite-copy.service"
     (resticCheckService.onSuccess or []))
+  # v1.1.0 — Automated off-site restore testing
+
+  {
+    assertion =
+      builtins.hasAttr
+        "restic-offsite-restore-test"
+        config.systemd.services;
+    message =
+      "Automated off-site restore-test service must be defined.";
+  }
+
+  {
+    assertion =
+      builtins.hasAttr
+        "restic-offsite-restore-test"
+        config.systemd.timers;
+    message =
+      "Automated off-site restore-test timer must be defined.";
+  }
+
+  {
+    assertion =
+      builtins.pathExists ../scripts/restic-offsite-restore-test;
+    message =
+      "Automated off-site restore-test script must exist.";
+  }
+
+  (helpers.assertEqual
+    "Off-site restore-test service type"
+    "oneshot"
+    (restoreTestServiceConfig.Type or null))
+
+  (helpers.assertContains
+    "Off-site restore test waits for network availability"
+    "network-online.target"
+    (restoreTest.after or []))
+
+  (helpers.assertContains
+    "Off-site restore test wants network availability"
+    "network-online.target"
+    (restoreTest.wants or []))
+
+  (helpers.assertContains
+    "Off-site restore-test failure notification"
+    "homelab-backup-notify@%p.service"
+    (restoreTest.onFailure or []))
+
+  (helpers.assertEqual
+    "Off-site restore-test EnvironmentFile"
+    (r2EnvTemplate.path or null)
+    (restoreTestServiceConfig.EnvironmentFile or null))
+
+  (helpers.assertEqual
+    "Off-site restore-test repository"
+    offsiteCopy.environment.RESTIC_REPOSITORY
+    (restoreTestEnvironment.RESTIC_REPOSITORY or null))
+
+  (helpers.assertEqual
+    "Off-site restore-test password file"
+    config.sops.secrets."restic-r2-repository-password".path
+    (restoreTestEnvironment.RESTIC_PASSWORD_FILE or null))
+
+  (helpers.assertEqual
+    "Off-site restore-test region"
+    "auto"
+    (restoreTestEnvironment.AWS_DEFAULT_REGION or null))
+
+  (helpers.assertEqual
+    "Off-site restore test runs Tuesdays at 09:00"
+    "Tue *-*-* 09:00:00"
+    (restoreTestTimerConfig.OnCalendar or null))
+
+  (helpers.assertEqual
+    "Off-site restore-test timer persists across downtime"
+    true
+    (restoreTestTimerConfig.Persistent or null))
+
+  (helpers.assertContains
+    "Off-site restore-test timer is enabled"
+    "timers.target"
+    (restoreTestTimer.wantedBy or []))
+
+  {
+    assertion =
+      builtins.hasInfix "restic restore latest" restoreTestScript;
+    message =
+      "Off-site restore test must restore the latest selected snapshot.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--tag ntfy" restoreTestScript;
+    message =
+      "Off-site restore test must select an ntfy snapshot.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "auth.db" restoreTestScript;
+    message =
+      "Off-site restore test must validate the restored auth.db file.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "mktemp -d" restoreTestScript;
+    message =
+      "Off-site restore test must use an isolated temporary directory.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "trap " restoreTestScript;
+    message =
+      "Off-site restore test must clean up its temporary directory.";
+  }
 ]

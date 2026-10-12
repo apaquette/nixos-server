@@ -497,6 +497,55 @@ let
           ExecStart = "/etc/homelab/scripts/restic-offsite-copy";
         };
       };
+      "restic-offsite-restore-test" = {
+        description = "Restore and validate a snapshot from Cloudflare R2";
+
+        after = [
+          "network-online.target"
+        ];
+
+        wants = [
+          "network-online.target"
+        ];
+
+        onFailure = [
+          "homelab-backup-notify@%p.service"
+        ];
+
+        path = [
+          pkgs.restic
+          pkgs.bash
+          pkgs.coreutils
+        ];
+
+        environment = {
+          RESTIC_REPOSITORY = r2Repository;
+
+          RESTIC_PASSWORD_FILE =
+            config.sops.secrets."restic-r2-repository-password".path;
+
+          AWS_DEFAULT_REGION = "auto";
+
+          HOME = "/var/lib/restic-offsite-restore-test";
+          XDG_CACHE_HOME = "/var/cache/restic-offsite-restore-test";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+
+          EnvironmentFile =
+            config.sops.templates."restic-r2.env".path;
+
+          StateDirectory = "restic-offsite-restore-test";
+          CacheDirectory = "restic-offsite-restore-test";
+
+          PrivateTmp = true;
+          UMask = "0077";
+
+          ExecStart =
+            "/etc/homelab/scripts/restic-offsite-restore-test";
+        };
+      };
    };
 in
 {
@@ -551,6 +600,14 @@ in
     timerConfig = {
       OnCalendar = "Mon..Sat *-*-* 08:00:00";
       Persistent = false;
+    };
+  };
+  systemd.timers."restic-offsite-restore-test" = {
+    wantedBy = [ "timers.target" ];
+
+    timerConfig = {
+      OnCalendar = "Tue *-*-* 09:00:00";
+      Persistent = true;
     };
   };
 }

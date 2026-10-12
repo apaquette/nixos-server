@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+restore_dir="$(mktemp -d /tmp/restic-offsite-restore-test.XXXXXX)"
+
+cleanup() {
+  local status=$?
+  trap - EXIT
+
+  if ! rm -rf -- "$restore_dir"; then
+    printf 'ERROR: Failed to remove temporary restore directory: %s\n' \
+      "$restore_dir" >&2
+    status=1
+  fi
+
+  exit "$status"
+}
+trap cleanup EXIT
+
+printf 'Starting off-site Restic restore test.\n'
+
+restic restore latest --tag ntfy --target "$restore_dir"
+
+restored_auth_db="$restore_dir/var/lib/private/ntfy-sh/auth.db"
+
+if [[ ! -s "$restored_auth_db" ]]; then
+  printf 'ERROR: Restored auth.db is missing or empty: %s\n' \
+    "$restored_auth_db" >&2
+  exit 1
+fi
+
+auth_db_size="$(stat -c '%s' -- "$restored_auth_db")"
+
+printf 'Restore test passed: auth.db exists and is non-empty (%s bytes).\n' \
+  "$auth_db_size"

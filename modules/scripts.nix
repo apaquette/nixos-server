@@ -12,5 +12,6 @@
     "homelab/scripts/homelab-storage-health".source = ../scripts/homelab-storage-health;
     "homelab/scripts/homelab-storage-ntfy".source = ../scripts/homelab-storage-ntfy;
     "homelab/scripts/restic-offsite-copy".source = ../scripts/restic-offsite-copy;
+    "homelab/scripts/restic-offsite-restore-test".source = ../scripts/restic-offsite-restore-test;
   };
 }
