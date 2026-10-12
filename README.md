@@ -139,24 +139,36 @@ Applications consume secrets through declarative NixOS configuration rather than
 
 ## Backup design
 
-Application backups are implemented as declarative systemd + Restic jobs.
+Application backups use declarative systemd services and Restic, with a local repository and an independent off-site copy in Cloudflare R2.
 
 The backup system provides:
 
-* application-specific backup scopes
-* PostgreSQL dumps for database-backed applications
-* consistent filesystem snapshots
-* service stop/start handling where required
-* sequential backup ordering
-* retention and pruning
-* repository integrity checks
-* failure notifications through ntfy
+- Application-specific backup scopes and PostgreSQL dumps for database-backed applications.
+- Sequential backups with service lifecycle handling where required.
+- Local snapshot retention and repository maintenance.
+- Off-site snapshot replication to Cloudflare R2 with an independently enforced retention policy.
+- Weekly R2 repository integrity checking followed by an automated representative restore test.
+- Quarterly full-data verification of the R2 repository using `restic check --read-data`.
+- Failure notifications through ntfy.
 
-The primary Restic repository is stored on dedicated local backup storage rather than the primary application volume. It is replicated to a separate Cloudflare R2 repository. A weekly scheduled restore test retrieves a representative snapshot from R2 and validates a restored file.
+### Off-site schedule
 
-The remote repository has been checked and restored from manually, and the automated restore test has passed. The full recovery path still depends on secure off-host recovery of the SOPS age key and repository credentials. The current configuration also requires an explicit decision on independent R2 retention and recurring remote integrity checks.
+| Schedule | Operation |
+|---|---|
+| Monday–Saturday, 08:00 | Replicate snapshots to R2 and apply remote retention |
+| Sunday, after the 06:00 local integrity check succeeds | Replicate snapshots to R2 |
+| Tuesday, 09:00 | Check R2 repository structure, restore the latest `ntfy` snapshot, and validate `auth.db` |
+| January, April, July, and October 1, at 12:00 | Read and verify all R2 repository data |
 
-Operational schedules and limitations are documented in [`docs/backup-and-restore.md`](docs/backup-and-restore.md). The full-host runbook is [`docs/disaster-recovery.md`](docs/disaster-recovery.md).
+The local and off-site repositories use the same declared retention policy: 14 daily, 8 weekly, and 6 monthly snapshots grouped by `host,tags`.
+
+### Recovery readiness
+
+The repository includes a disaster-recovery runbook covering replacement-host preparation, SOPS secrets recovery, access to the R2 repository, application restoration, and service validation.
+
+The automated restore test verifies a representative file from R2; it does not prove that every application can be recovered end-to-end. Full replacement-host recovery has not been rehearsed. Backup-freshness alerting is also outside the current implementation.
+
+Detailed procedures are documented in [`docs/backup-and-restore.md`](docs/backup-and-restore.md) and [`docs/disaster-recovery.md`](docs/disaster-recovery.md).
 
 ## Validation
 
@@ -206,23 +218,25 @@ Services use dedicated users where supported by their NixOS modules, while secre
 
 Configuration changes are validated with the Nix test suite and a build before being activated on the host.
 
-
 ## Roadmap
 
-The v1.0 migration establishes the production baseline. Future development is focused on improving recovery, automation, observability, and infrastructure resilience.
+The v1.0.0 milestone established the declarative NixOS infrastructure and native service architecture. **v1.1.0 completes the reliability milestone**, adding off-site backups, independent remote retention, automated repository verification, representative restore testing, and documented disaster recovery.
 
-| Version  | Focus                                                               | Status   |
-| -------- | ------------------------------------------------------------------- | -------- |
-| **v1.0.0** | Debian → NixOS migration, native services, sops-nix, Restic backups | Complete |
-| **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Implementation delivered; readiness checks open |
-| **v1.2.0** | CI, NixOS VM testing, deployment validation | Planned |
-| **v1.3.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
+| Version | Focus | Status |
+|---|---|---|
+| **v1.0.0** | NixOS migration, native services, sops-nix, local Restic backups | Complete |
+| **v1.1.0** | Off-site backups, retention, restore testing, disaster recovery | Complete |
+| **v1.2.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Next |
+| **v1.3.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
-The v1.1.0 core implementation provides off-site replication, automated representative restore testing, and a disaster-recovery runbook. Release completion still requires verification of off-host age-key recovery, an explicit R2 retention/integrity policy, and a review or rehearsal of the documented recovery procedure.
+v1.1.0 provides an independent off-site backup repository, enforced remote retention, weekly structural verification and representative restore testing, quarterly full-data verification, and a documented disaster-recovery procedure.
 
-See [`docs/roadmap.md`](docs/roadmap.md) for release acceptance criteria and planned engineering work.
+The next milestone is **v1.2.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
 
+The v1.1.0 recovery procedure has not been rehearsed on a replacement host. The automated restore test validates representative `ntfy` data rather than proving complete recovery of every application. Backup-freshness alerting remains planned work.
+
+See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and engineering objectives.
 
 ## Documentation
 

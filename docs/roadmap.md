@@ -8,7 +8,7 @@ Future work is therefore focused primarily on **architecture, reliability, autom
 
 ---
 
-## v1.0 — Completed
+## v1.0.0 — Completed
 
 ### Infrastructure migration
 
@@ -60,60 +60,87 @@ Future work is therefore focused primarily on **architecture, reliability, autom
 
 # v1.1.0 — Reliability
 
-**Priority: High — implementation delivered; recovery-readiness validation remains open.**
+**Priority: High**
 
-The purpose of this milestone is to add an off-host backup copy, automate a representative restore test, and document recovery after complete host loss. The configuration and test currently implement the items below, but the milestone should not be marked fully complete until the remaining readiness items are resolved.
+**Status: Complete**
+
+v1.1.0 establishes an off-site backup strategy, independently managed remote retention, automated repository verification, representative restore testing, and documented disaster recovery.
 
 ### Off-site Restic backups
 
-**Implemented and runtime-verified:**
+**Status: Complete**
 
-* The local Restic repository at `/mnt/backup/Restic/homelab` is copied to a separate Cloudflare R2 Restic repository.
-* Scheduled replication runs Monday–Saturday at 08:00.
-* A successful Sunday 06:00 local repository integrity check triggers replication through a systemd `OnSuccess` relationship.
-* Replication failures use the existing ntfy failure-notification service.
-* A manual remote integrity check and representative restore have succeeded; subsequent scheduled Sunday and Monday replication runs were also confirmed successful.
-
-**Remaining reliability work:**
-
-* Confirm that the SOPS age private key and all credentials required to reach and decrypt R2 are recoverable independently of the original host.
-* Define and test an R2-specific retention/pruning policy. The local policy is not proof of remote pruning, and the current reviewed configuration does not declare automatic R2 retention.
-* Decide whether to add a recurring R2-side repository integrity check and replication-freshness monitoring.
+- Replicate the local Restic repository to Cloudflare R2.
+- Preserve the local repository for faster recovery.
+- Keep R2 access credentials and the remote repository password managed through sops-nix.
+- Apply independent R2 retention grouped by `host,tags`, retaining 14 daily, 8 weekly, and 6 monthly snapshots.
+- Trigger replication Monday through Saturday at 08:00.
+- Trigger Sunday replication after successful completion of the scheduled 06:00 local integrity check.
+- Retain systemd failure notifications through ntfy.
 
 ### Automated restore testing
 
-**Implemented and manually verified:**
+**Status: Complete**
 
-* A weekly Tuesday 09:00 systemd timer runs `restic-offsite-restore-test.service`.
-* The script restores the latest remote snapshot tagged `ntfy` into a temporary directory.
-* It verifies that the restored `auth.db` exists and is non-empty, cleans up the temporary directory, and reports failures through the existing notification path.
-* The first manual service execution passed, restoring an `auth.db` file of 118,784 bytes.
+The weekly restore test runs Tuesday at 09:00 and:
 
-This proves that a representative file can be retrieved from the R2 repository. It does not prove a complete database or whole-application recovery. Broader application recovery tests may be added when useful, without expanding the scheduled smoke test unnecessarily.
+1. Checks the R2 repository using `restic check`.
+2. Restores the latest snapshot tagged `ntfy` to an isolated temporary directory.
+3. Verifies that `auth.db` exists and is non-empty.
+4. Cleans up temporary restore data on exit.
+5. Uses the existing systemd notification mechanism to report failures.
+
+This verifies representative file recovery from R2. It does not establish that every application can be recovered end-to-end.
+
+### Remote repository verification
+
+**Status: Complete**
+
+- Run weekly structural integrity verification against R2 before the representative restore test.
+- Run quarterly full-data verification using `restic check --read-data`.
+- Notify through the existing failure-notification mechanism if verification fails.
+
+The quarterly full-data check was manually executed successfully during release validation, reading all 1,219 packs without finding repository errors.
 
 ### Disaster-recovery procedure
 
-**Documentation added in this milestone:**
+**Status: Documented**
 
-* [`docs/disaster-recovery.md`](disaster-recovery.md) describes independent prerequisites, bootstrap of a replacement NixOS host, restoration from R2, application/data recovery order, and validation.
-* [`docs/backup-and-restore.md`](backup-and-restore.md) describes the current schedules, retention boundary, integrity checks, restore-test behavior, and known limitations.
+The `docs/disaster-recovery.md` runbook documents the replacement-host recovery sequence:
 
-**Before v1.1.0 is declared complete:**
+1. Prepare a replacement NixOS installation.
+2. Recover access to the Git repository and the SOPS age private key.
+3. Recover the credentials and repository password required for R2 access.
+4. Apply the declarative NixOS configuration.
+5. Restore application state and databases from Restic.
+6. Validate service health and application functionality before returning production traffic.
 
-1. Verify and document that the age private key is stored securely outside the host and can be recovered by an authorized operator.
-2. Review the R2 retention and recurring integrity-check policy; implement the decisions appropriate for this system.
-3. Perform a recovery walkthrough or rehearsal from a separate machine, using the runbook without relying on the original host for secrets.
-4. Run `nix flake check --show-trace`, review the configuration and documentation diffs, and commit the release changes.
+An independent SOPS age recipient has been added for desktop recovery, and decryption using the desktop recovery key has been verified.
 
-The runbook deliberately avoids storing secrets in Git and warns operators to inspect target disks before running any installation or Disko-related operation that could format storage.
+A complete replacement-host recovery has not been rehearsed because a separate recovery machine is unavailable. The runbook documents the intended process and must not be interpreted as proof of a successful full-host recovery.
 
----
+### Remaining limitations
 
-# v1.2 — Architecture & Engineering Workflow
+The following limitations are accepted for v1.1.0 and do not block completion of the agreed milestone:
+
+- Backup-freshness alerting is not configured.
+- The scheduled restore test validates a representative `ntfy` file rather than performing a complete recovery of all applications.
+- Full replacement-host recovery is documented but has not been rehearsed.
+- The SOPS recovery private key must remain protected in storage independent of the original server.
+
+These limitations provide input for future reliability improvements.
+
+### Acceptance summary
+
+The v1.1.0 implementation provides off-site replication, independent remote retention, automated repository verification, representative restore testing, and a documented disaster-recovery procedure. Core backup, restore, and full-data integrity operations have been validated successfully.
+
+The next milestone is v1.2.0, which focuses on host-agnostic architecture and a more rigorous engineering workflow.
+
+# v1.2.0 — Architecture & Engineering Workflow
 
 **Priority: High**
 
-v1.2 focuses on making the infrastructure **host-agnostic, testable, and safe to evolve**.
+v1.2.0 focuses on making the infrastructure **host-agnostic, testable, and safe to evolve**.
 
 The first part of this milestone addresses an architectural limitation in the v1.0 implementation: reusable service modules still contain assumptions about the concrete deployment environment.
 
@@ -420,7 +447,7 @@ Each release should represent a known-good infrastructure state that can be refe
 
 ---
 
-# v1.3 — Observability
+# v1.3.0 — Observability
 
 **Priority: Medium**
 
@@ -484,7 +511,7 @@ Extend alerts beyond "service is down" to include conditions such as:
 
 These improvements move the project from a well-recoverable single host toward a more resilient distributed setup.
 
-The architectural work in v1.2 is intentionally separated from this milestone. v1.2 makes the system capable of supporting multiple hosts; v2.0 introduces additional infrastructure that actually uses that capability.
+The architectural work in v1.2.0 is intentionally separated from this milestone. v1.2.0 makes the system capable of supporting multiple hosts; v2.0 introduces additional infrastructure that actually uses that capability.
 
 ### Secondary host
 
@@ -587,11 +614,11 @@ The roadmap is intentionally ordered by operational and architectural value:
 | Version | Focus | Status |
 |---|---|---|
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
-| **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Implementation delivered; readiness items open |
+| **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
 | **v1.2.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
 | **v1.3.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
-The v1.1.0 implementation now includes off-site replication, a scheduled representative restore test, and a disaster-recovery runbook. Do not treat v1.1.0 as fully closed until off-host recovery of the SOPS age key is verified, R2 retention/integrity decisions are addressed, and the documented recovery procedure has been reviewed or rehearsed.
+The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-The next major development milestone after v1.1.0 remains **v1.2.0**: make the current infrastructure genuinely reusable across hosts before introducing distributed infrastructure.
+The next engineering milestone is v1.2.0: make the existing infrastructure reusable across multiple hosts, establish multi-host configuration tests, and strengthen CI and deployment validation before introducing distributed infrastructure.

@@ -138,6 +138,7 @@ All times are local server time.
 | Daily 05:00 | ntfy snapshot |
 | Daily 05:30 | Local Restic maintenance / pruning |
 | Sunday 06:00 | Local Restic repository integrity check |
+| Quarterly: January, April, July, and October 1 at 12:00 | Full R2 data-integrity check using `restic check --read-data` |
 
 ### Off-site operations
 
@@ -153,13 +154,13 @@ The Sunday integrity check is a oneshot service with an `OnSuccess` trigger for 
 
 ## Retention
 
-Snapshots are grouped by:
+Snapshots in both repositories are grouped by:
 
 ```text
 host,tags
 ```
 
-Retention policy:
+Both the local and R2 repositories use the following retention policy:
 
 ```text
 14 daily
@@ -167,9 +168,17 @@ Retention policy:
 6 monthly
 ```
 
-Maintenance performs snapshot pruning and repository cleanup.
+### Local repository
 
-The configuration deliberately keeps retention policy in Nix so it is version-controlled alongside the backup architecture.
+Local Restic maintenance runs daily at 05:30 and applies the configured retention policy to the local repository.
+
+### Cloudflare R2 repository
+
+Off-site replication applies the same retention policy independently to the R2 repository. After a successful snapshot copy, `scripts/restic-offsite-copy` runs Restic `forget --prune` with the configured retention rules.
+
+Local pruning does not automatically prune the R2 repository. Each repository maintains its own snapshot metadata and retention state.
+
+The off-site retention mode is configured declaratively in `modules/backups.nix` and enforced by the replication script. Retention options and the configured enforcement mode are covered by assertions in `tests/backups.nix`.
 
 ## Failure handling
 
@@ -226,25 +235,35 @@ The `restic-offsite-copy.service` runs `scripts/restic-offsite-copy`. It copies 
 
 The copy service is a systemd oneshot with a failure notification through `homelab-backup-notify@%p.service`. The schedule and Sunday success-trigger are declared in `modules/backups.nix` and tested in `tests/backups.nix`.
 
-A remote `restic check` and a representative remote restore have been run manually and succeeded. The weekly scheduled check currently validates the local repository; it should not be described as a scheduled R2 integrity check.
+R2 integrity verification is automated through `restic-offsite-restore-test.service`, which runs weekly on Tuesday at 09:00. The service first runs `restic check` against the R2 repository; only if that succeeds does it restore and validate the representative `ntfy` snapshot. The local repository has its own Sunday integrity check. A separate quarterly R2 full-data check runs `restic check --read-data`.
 
-### Off-site retention and integrity boundary
+### Off-site retention and integrity verification
 
-The local repository has a declared retention policy grouped by `host,tags` (14 daily, 8 weekly, 6 monthly). The current configuration does not show an independent R2 pruning policy. Do not assume that local pruning deletes the corresponding snapshots from R2, and do not add automatic remote deletion until its retention rules and recovery implications have been tested.
+The R2 repository has an independently enforced retention policy matching the local policy: 14 daily, 8 weekly, and 6 monthly snapshots grouped by `host,tags`. Replication runs the retention operation after the snapshot copy succeeds.
 
-A separate recurring R2-side integrity check and backup-freshness alert are also not configured in the definitions reviewed for v1.1.0. These are outstanding reliability improvements, not completed functionality.
+R2 integrity verification has two levels:
+
+- **Weekly structural verification:** `restic check` runs before the representative restore test on Tuesday.
+- **Quarterly full-data verification:** `restic check --read-data` reads the repository's stored data in addition to checking its structure.
+
+Both services use the SOPS-managed R2 credentials and repository password. The services have systemd failure notifications configured.
+
+Backup-freshness monitoring is not currently configured. Automated checks validate repository integrity and representative recoverability, but they do not alert independently when an expected snapshot becomes stale.
 
 ## Automated restore test
 
-`restic-offsite-restore-test.service` runs weekly on Tuesday at 09:00. It uses the R2 repository and its SOPS-managed credentials to:
+`restic-offsite-restore-test.service` runs weekly on Tuesday at 09:00.
+
+The script performs the following steps:
 
 1. Create an isolated temporary directory.
-2. Restore the latest snapshot tagged `ntfy` from R2.
-3. Verify that `var/lib/private/ntfy-sh/auth.db` exists in the restored tree and is non-empty.
-4. Remove the temporary directory on exit, including failure paths.
-5. Send a failure notification through the existing systemd notification template if the service fails.
+2. Run `restic check` against the R2 repository.
+3. Restore the latest snapshot tagged `ntfy`.
+4. Verify that `var/lib/private/ntfy-sh/auth.db` exists in the restored tree and is non-empty.
+5. Remove the temporary directory on exit, including failure paths.
+6. Report failures through the existing systemd notification mechanism.
 
-A successful run confirms that a representative file can be downloaded, decrypted, and restored from R2. It does **not** validate the semantic integrity of the database, test a live ntfy startup, or prove that Nextcloud, Immich, PostgreSQL, and all other applications can be recovered end-to-end. The test is deliberately small to reduce runtime and remote reads.
+A successful run confirms that a representative file can be retrieved, decrypted, and restored from R2, and that the repository passes the structural check. It does not validate the semantic integrity of the database, test a live ntfy startup, or prove that every application can be recovered end-to-end.
 
 Inspect the service and timer with:
 
@@ -365,11 +384,10 @@ The local repository on a separate physical disk provides a fast recovery path f
 
 The following limitations remain explicit:
 
-* The SOPS age private key must have a protected copy independent of the original host. Without it, encrypted secrets in Git may not be decryptable.
-* The R2 repository password and the R2 access credentials must be recoverable through the encrypted configuration or another documented secure recovery mechanism.
-* The scheduled restore test checks one representative file from an `ntfy` snapshot; it is not a full application recovery test.
-* R2-side integrity verification is currently manual rather than scheduled.
-* The configuration reviewed for v1.1.0 has no separately declared R2 retention/pruning policy. Remote snapshot growth and cleanup need to be assessed before release completion.
-* A complete recovery from a replacement host has not been claimed merely because a representative file restore succeeded.
+- A desktop SOPS recovery key has been added as a recipient and successfully tested against `secrets/homelab.yaml`. The private key must remain backed up securely and independently of both the desktop and the homelab server.
+- Recovery requires access to the Git repository, the SOPS recovery key, the Cloudflare account and R2 credentials, and the Restic repository password.
+- The scheduled restore test validates one representative file from an `ntfy` snapshot. It is not a complete application-recovery test.
+- Backup-freshness alerting is not configured.
+- Full replacement-host recovery has not been rehearsed. The disaster-recovery procedure is documented, but its end-to-end execution on a separate recovery environment remains unverified.
 
 Use [`disaster-recovery.md`](disaster-recovery.md) for the full-host procedure and its readiness checklist.
