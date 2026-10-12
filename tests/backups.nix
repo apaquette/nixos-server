@@ -182,11 +182,27 @@ let
 
   offsiteCopyTimer =
     config.systemd.timers."restic-offsite-copy" or {};
+
   restoreTest =
     config.systemd.services."restic-offsite-restore-test" or {};
 
   restoreTestTimer =
     config.systemd.timers."restic-offsite-restore-test" or {};
+
+  offsiteFullCheck =
+    config.systemd.services."restic-offsite-full-check" or {};
+
+  offsiteFullCheckTimer =
+    config.systemd.timers."restic-offsite-full-check" or {};
+
+  offsiteFullCheckEnvironment =
+    offsiteFullCheck.environment or {};
+
+  offsiteFullCheckServiceConfig =
+    offsiteFullCheck.serviceConfig or {};
+
+  offsiteFullCheckTimerConfig =
+    offsiteFullCheckTimer.timerConfig or {};
 
   restoreTestEnvironment =
     restoreTest.environment or {};
@@ -1001,4 +1017,125 @@ lib.flatten [
     message =
       "Off-site restore test must clean up its temporary directory.";
   }
+
+  # v1.1.0 — Remote retention policy
+
+  {
+    assertion =
+      builtins.hasInfix "--group-by host,tags" offsiteCopyScript;
+    message =
+      "Off-site copy must use host and tag retention grouping.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--keep-daily 14" offsiteCopyScript;
+    message =
+      "Off-site copy must retain 14 daily snapshots.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--keep-weekly 8" offsiteCopyScript;
+    message =
+      "Off-site copy must retain 8 weekly snapshots.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--keep-monthly 6" offsiteCopyScript;
+    message =
+      "Off-site copy must retain 6 monthly snapshots.";
+  }
+
+  {
+    assertion =
+      builtins.hasInfix "--prune" offsiteCopyScript;
+    message =
+      "Off-site copy must prune data removed by retention.";
+  }
+
+  # v1.1.0 — Quarterly R2 full-data verification
+
+  {
+    assertion =
+      builtins.hasAttr
+        "restic-offsite-full-check"
+        config.systemd.services;
+    message =
+      "Quarterly R2 full-data-check service must be defined.";
+  }
+
+  {
+    assertion =
+      builtins.hasAttr
+        "restic-offsite-full-check"
+        config.systemd.timers;
+    message =
+      "Quarterly R2 full-data-check timer must be defined.";
+  }
+
+  (helpers.assertEqual
+    "Quarterly R2 full-data-check service type"
+    "oneshot"
+    (offsiteFullCheckServiceConfig.Type or null))
+
+   {
+    assertion =
+      builtins.hasInfix
+        "--read-data"
+        (offsiteFullCheckServiceConfig.ExecStart or "");
+    message =
+      "Quarterly R2 full-data check must use --read-data.";
+  }
+
+  (helpers.assertContains
+    "Quarterly R2 full-data check waits for network"
+    "network-online.target"
+    (offsiteFullCheck.after or []))
+
+  (helpers.assertContains
+    "Quarterly R2 full-data-check failure notification"
+    "homelab-backup-notify@%p.service"
+    (offsiteFullCheck.onFailure or []))
+
+  (helpers.assertEqual
+    "Quarterly R2 check uses the R2 environment template"
+    (r2EnvTemplate.path or null)
+    (offsiteFullCheckServiceConfig.EnvironmentFile or null))
+
+  (helpers.assertEqual
+    "Quarterly R2 check uses the off-site repository"
+    offsiteCopy.environment.RESTIC_REPOSITORY
+    (offsiteFullCheckEnvironment.RESTIC_REPOSITORY or null))
+
+  (helpers.assertEqual
+    "Quarterly R2 check uses the R2 password file"
+    config.sops.secrets."restic-r2-repository-password".path
+    (offsiteFullCheckEnvironment.RESTIC_PASSWORD_FILE or null))
+
+  (helpers.assertEqual
+    "Quarterly R2 check uses the correct region"
+    "auto"
+    (offsiteFullCheckEnvironment.AWS_DEFAULT_REGION or null))
+
+  (helpers.assertEqual
+    "Off-site retention starts in dry-run mode"
+    "enforce"
+    (offsiteCopy.environment.RESTIC_OFFSITE_RETENTION_MODE or null))
+
+  (helpers.assertEqual
+    "Quarterly R2 full-data check runs at 03:00 on the first day of each quarter"
+    "*-01,04,07,10-01 12:00:00"
+    (offsiteFullCheckTimerConfig.OnCalendar or null))
+
+  (helpers.assertEqual
+    "Quarterly R2 full-data-check timer persists across downtime"
+    true
+    (offsiteFullCheckTimerConfig.Persistent or null))
+
+  (helpers.assertContains
+    "Quarterly R2 full-data-check timer is enabled"
+    "timers.target"
+    (offsiteFullCheckTimer.wantedBy or []))
 ]

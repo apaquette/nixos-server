@@ -37,5 +37,43 @@ restic \
   --from-password-file "$RESTIC_FROM_PASSWORD_FILE" \
   --verbose
 
-printf '[%s] Off-site Restic snapshot copy completed successfully.\n' \
+printf '[%s] Off-site snapshot copy completed successfully.\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')"
+
+retention_args=(
+  --group-by host,tags
+  --keep-daily 14
+  --keep-weekly 8
+  --keep-monthly 6
+)
+
+case "${RESTIC_OFFSITE_RETENTION_MODE:-dry-run}" in
+  dry-run)
+    printf 'Evaluating R2 retention policy in dry-run mode; no snapshots will be removed.\n'
+
+    restic \
+      --repo "$RESTIC_REPOSITORY" \
+      --password-file "$RESTIC_PASSWORD_FILE" \
+      forget "${retention_args[@]}" \
+      --dry-run
+    ;;
+
+  enforce)
+    printf 'Applying R2 retention policy and pruning unreferenced data.\n'
+
+    restic \
+      --repo "$RESTIC_REPOSITORY" \
+      --password-file "$RESTIC_PASSWORD_FILE" \
+      forget "${retention_args[@]}" \
+      --prune
+    ;;
+
+  *)
+    printf 'ERROR: Invalid RESTIC_OFFSITE_RETENTION_MODE: %s\n' \
+      "$RESTIC_OFFSITE_RETENTION_MODE" >&2
+    exit 2
+    ;;
+esac
+
+printf '[%s] Off-site replication and retention processing completed.\n' \
   "$(date '+%Y-%m-%d %H:%M:%S')"

@@ -18,8 +18,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-printf 'Starting off-site Restic restore test.\n'
+printf 'Starting off-site Restic repository check.\n'
+restic check
+printf 'Off-site Restic repository check passed.\n'
 
+printf 'Starting off-site Restic restore test.\n'
 restic restore latest --tag ntfy --target "$restore_dir"
 
 restored_auth_db="$restore_dir/var/lib/private/ntfy-sh/auth.db"

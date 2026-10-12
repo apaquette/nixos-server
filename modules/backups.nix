@@ -483,6 +483,8 @@ let
           RESTIC_FROM_REPOSITORY = repository;
           RESTIC_FROM_PASSWORD_FILE = passwordFile;
 
+          RESTIC_OFFSITE_RETENTION_MODE = "enforce";
+
           AWS_DEFAULT_REGION = "auto";
 
 	  HOME = "/var/lib/restic-offsite";
@@ -546,6 +548,49 @@ let
             "/etc/homelab/scripts/restic-offsite-restore-test";
         };
       };
+      "restic-offsite-full-check" = {
+        description = "Quarterly full-data integrity check of Cloudflare R2 Restic repository";
+
+        after = [
+          "network-online.target"
+        ];
+
+        wants = [
+          "network-online.target"
+        ];
+
+        onFailure = [
+          "homelab-backup-notify@%p.service"
+        ];
+
+        path = [
+          pkgs.restic
+        ];
+
+        environment = {
+          RESTIC_REPOSITORY = r2Repository;
+
+          RESTIC_PASSWORD_FILE =
+            config.sops.secrets."restic-r2-repository-password".path;
+
+          AWS_DEFAULT_REGION = "auto";
+
+          HOME = "/var/lib/restic-offsite-full-check";
+          XDG_CACHE_HOME = "/var/cache/restic-offsite-full-check";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+
+          EnvironmentFile =
+            config.sops.templates."restic-r2.env".path;
+
+          StateDirectory = "restic-offsite-full-check";
+          CacheDirectory = "restic-offsite-full-check";
+
+          ExecStart = "${pkgs.restic}/bin/restic check --read-data";
+        };
+      };
    };
 in
 {
@@ -607,6 +652,14 @@ in
 
     timerConfig = {
       OnCalendar = "Tue *-*-* 09:00:00";
+      Persistent = true;
+    };
+  };
+  systemd.timers."restic-offsite-full-check" = {
+    wantedBy = [ "timers.target" ];
+
+    timerConfig = {
+      OnCalendar = "*-01,04,07,10-01 12:00:00";
       Persistent = true;
     };
   };
