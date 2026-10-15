@@ -158,7 +158,7 @@ in
 
   (helpers.assertEqual
     "Nextcloud extra apps"
-    [ "calendar" "contacts" "notes" "tasks" ]
+    [ "calendar" "contacts" "notes" "pantry" "tasks" "tickbuddy" ]
     (lib.sort builtins.lessThan extraApps))
 
   (helpers.assertEqual

@@ -20,6 +20,22 @@ let
       hash = "sha256-ftMF6IAZLYBLqDF5oZ3SIldnlgjWMWGmEc4/ipGNKqY=";
     };
   });
+  pantry0370 = pkgs.fetchNextcloudApp {
+    appName = "pantry";
+    appVersion = "0.37.0";
+
+    url = "https://github.com/chenasraf/nextcloud-pantry/releases/download/v0.37.0/pantry-v0.37.0.tar.gz";
+    hash = "sha256-PboKBw8IrEDKAiBwqQLE4IvD974d73nnZpZDt5s/b5Y=";
+
+    license = "agpl3Plus";
+  };
+  tickbuddy210 = pkgs.fetchNextcloudApp {
+    appName = "tickbuddy";
+    appVersion = "2.1.0";
+    url = "https://github.com/martinhammer/tickbuddy/releases/download/v2.1.0/tickbuddy-v2.1.0.tar.gz";
+    hash = "sha256-ZltacT+eJS36kTdvAlDU1yC2Gh9OieOjTqoG2DGMzcg=";
+    license = "agpl3Plus";
+  };
 in
 {
   services.nextcloud = {
@@ -68,6 +84,8 @@ in
     extraApps = with unstable.nextcloud35Packages.apps; {
       calendar = calendar661;
       inherit contacts notes tasks;
+      pantry = pantry0370;
+      tickbuddy = tickbuddy210;
     };
 
     extraAppsEnable = true;
