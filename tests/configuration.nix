@@ -14,6 +14,7 @@ let
     (import ./seerr.nix { inherit config pkgs helpers; })
     (import ./minecraft.nix { inherit config pkgs helpers; })
     (import ./sops.nix { inherit config helpers; })
+    (import ./ddclient.nix { inherit config helpers; })
     (import ./monitoring.nix { inherit config helpers; })
     (import ./backups.nix { inherit config lib pkgs helpers; })
     (import ./smartd.nix { inherit config helpers; })

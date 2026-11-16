@@ -220,19 +220,20 @@ Configuration changes are validated with the Nix test suite and a build before b
 
 ## Roadmap
 
-The v1.0.0 milestone established the declarative NixOS infrastructure and native service architecture. **v1.1.0 completes the reliability milestone**, adding off-site backups, independent remote retention, automated repository verification, representative restore testing, and documented disaster recovery.
+The v1.0.0 milestone established the declarative NixOS infrastructure and native service architecture. **v1.1.0 completed the reliability milestone**, adding off-site backups, independent remote retention, automated repository verification, representative restore testing, and documented disaster recovery. **v1.2.0 completes the Namecheap Dynamic DNS integration**, keeping the homelab's public IPv4 records synchronized with its residential WAN address.
 
 | Version | Focus | Status |
 |---|---|---|
 | **v1.0.0** | NixOS migration, native services, sops-nix, local Restic backups | Complete |
 | **v1.1.0** | Off-site backups, retention, restore testing, disaster recovery | Complete |
-| **v1.2.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Next |
-| **v1.3.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
+| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Next |
+| **v1.4.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
 v1.1.0 provides an independent off-site backup repository, enforced remote retention, weekly structural verification and representative restore testing, quarterly full-data verification, and a documented disaster-recovery procedure.
 
-The next milestone is **v1.2.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
+The completed **v1.2.0** release adds Namecheap Dynamic DNS for the homelab's public IPv4 records. The next engineering milestone is **v1.3.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
 
 The v1.1.0 recovery procedure has not been rehearsed on a replacement host. The automated restore test validates representative `ntfy` data rather than proving complete recovery of every application. Backup-freshness alerting remains planned work.
 
@@ -241,6 +242,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and enginee
 ## Documentation
 
 * [Architecture](docs/architecture.md)
+* [Dynamic DNS](docs/dynamic-dns.md)
 * [Backup and Restore](docs/backup-and-restore.md)
 * [Disaster Recovery](docs/disaster-recovery.md)
 * [Roadmap](docs/roadmap.md)

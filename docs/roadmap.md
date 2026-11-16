@@ -134,13 +134,62 @@ These limitations provide input for future reliability improvements.
 
 The v1.1.0 implementation provides off-site replication, independent remote retention, automated repository verification, representative restore testing, and a documented disaster-recovery procedure. Core backup, restore, and full-data integrity operations have been validated successfully.
 
-The next milestone is v1.2.0, which focuses on host-agnostic architecture and a more rigorous engineering workflow.
+The next release is v1.2.0, which adds Namecheap Dynamic DNS for the homelab's public IPv4 records. The host-agnostic architecture and engineering workflow work is moved to v1.3.0.
 
-# v1.2.0 — Architecture & Engineering Workflow
+# v1.2.0 — Namecheap Dynamic DNS
 
 **Priority: High**
 
-v1.2.0 focuses on making the infrastructure **host-agnostic, testable, and safe to evolve**.
+**Status: Complete**
+
+v1.2.0 adds automated Namecheap Dynamic DNS updates to keep the homelab's public IPv4 records synchronized with the residential WAN address.
+
+### Automated DNS updates
+
+**Status: Complete**
+
+- Use the NixOS `services.ddclient` integration with the Namecheap Dynamic DNS protocol.
+- Discover the current public IPv4 address through IPify.
+- Update the `cloud`, `jellyfin`, `seerr`, `immich`, `ntfy`, and `mc` host records in the `alexpaquette.dev` zone.
+- Run the updater on a five-minute systemd timer.
+- Use HTTPS for requests to Namecheap's Dynamic DNS endpoint.
+- Manage IPv4 A records only; do not attempt to configure IPv6 AAAA records.
+
+### Secret management
+
+**Status: Complete**
+
+- Store the domain-specific Namecheap Dynamic DNS password in the encrypted SOPS secrets file.
+- Expose the decrypted password only through the sops-nix runtime secret.
+- Grant the ddclient `DynamicUser` access through a dedicated secret group rather than making the password world-readable.
+- Keep the Namecheap account password and API credentials out of the updater configuration.
+
+### Configuration tests and operations
+
+**Status: Complete**
+
+- Add declarative assertions for the ddclient protocol, server, account, managed host labels, update interval, IPv4-only behaviour, timer, and secret permissions.
+- Document Namecheap DNS prerequisites, secret setup, deployment, verification, and troubleshooting.
+- Verify the timer, service execution, and all six public DNS A records after activation.
+
+### Acceptance criteria
+
+The v1.2.0 acceptance criteria are complete:
+
+- [x] All six host labels exist in Namecheap as A+ Dynamic DNS records.
+- [x] The encrypted Namecheap Dynamic DNS password is present in the SOPS file and the system build succeeds.
+- [x] `nix flake check` and the complete NixOS system build pass.
+- [x] The ddclient timer is active and a service execution completes successfully.
+- [x] All six public A records resolve to the current public IPv4 address.
+- [x] Local dnsmasq overrides continue resolving service hostnames to the homelab's private LAN address.
+
+---
+
+# v1.3.0 — Architecture & Engineering Workflow
+
+**Priority: High**
+
+v1.3.0 focuses on making the infrastructure **host-agnostic, testable, and safe to evolve**.
 
 The first part of this milestone addresses an architectural limitation in the v1.0 implementation: reusable service modules still contain assumptions about the concrete deployment environment.
 
@@ -447,7 +496,7 @@ Each release should represent a known-good infrastructure state that can be refe
 
 ---
 
-# v1.3.0 — Observability
+# v1.4.0 — Observability
 
 **Priority: Medium**
 
@@ -511,7 +560,7 @@ Extend alerts beyond "service is down" to include conditions such as:
 
 These improvements move the project from a well-recoverable single host toward a more resilient distributed setup.
 
-The architectural work in v1.2.0 is intentionally separated from this milestone. v1.2.0 makes the system capable of supporting multiple hosts; v2.0 introduces additional infrastructure that actually uses that capability.
+The architectural work in v1.3.0 is intentionally separated from this milestone. v1.3.0 makes the system capable of supporting multiple hosts; v2.0 introduces additional infrastructure that actually uses that capability.
 
 ### Secondary host
 
@@ -615,10 +664,10 @@ The roadmap is intentionally ordered by operational and architectural value:
 |---|---|---|
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
 | **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
-| **v1.2.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
-| **v1.3.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
+| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | In progress |\n| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
+| **v1.4.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
 The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-The next engineering milestone is v1.2.0: make the existing infrastructure reusable across multiple hosts, establish multi-host configuration tests, and strengthen CI and deployment validation before introducing distributed infrastructure.
+The next release, v1.2.0, adds Namecheap Dynamic DNS to keep the homelab's public IPv4 records up to date. The next engineering milestone is v1.3.0: make the existing infrastructure reusable across multiple hosts, establish multi-host configuration tests, and strengthen CI and deployment validation before introducing distributed infrastructure.

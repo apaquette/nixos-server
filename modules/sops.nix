@@ -5,6 +5,13 @@
 
   sops.age.keyFile = "/var/lib/sops-nix/key.txt";
 
+  sops.secrets."namecheap-ddns-password" = {
+    key = "namecheap/ddns_password";
+    owner = "root";
+    group = "ddclient-secrets";
+    mode = "0440";
+  };
+
   sops.secrets."nextcloud-postgres-password" = {
     key = "nextcloud/postgres_password";
   };
