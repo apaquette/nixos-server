@@ -31,6 +31,7 @@ with helpers;
       "seerr"
       "immich"
       "ntfy"
+      "mc"
     ]
     config.services.ddclient.domains)
 
