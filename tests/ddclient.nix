@@ -75,6 +75,16 @@ with helpers;
     config.sops.secrets."namecheap-ddns-password".mode)
 
   (assertEqual
+    "Namecheap DDNS secret group exists"
+    true
+    (builtins.hasAttr "ddclient-secrets" config.users.groups))
+
+  (assertEqual
+    "Namecheap DDNS IPv6 discovery disabled"
+    ""
+    config.services.ddclient.usev6)
+
+  (assertEqual
     "Namecheap DDNS DynamicUser"
     true
     config.systemd.services.ddclient.serviceConfig.DynamicUser)
