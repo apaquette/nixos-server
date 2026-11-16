@@ -220,7 +220,7 @@ Configuration changes are validated with the Nix test suite and a build before b
 
 ## Roadmap
 
-The v1.0.0 milestone established the declarative NixOS infrastructure and native service architecture. **v1.1.0 completes the reliability milestone**, adding off-site backups, independent remote retention, automated repository verification, representative restore testing, and documented disaster recovery.
+The v1.0.0 milestone established the declarative NixOS infrastructure and native service architecture. **v1.1.0 completed the reliability milestone**, adding off-site backups, independent remote retention, automated repository verification, representative restore testing, and documented disaster recovery. **v1.2.0 adds Namecheap Dynamic DNS** to keep the homelab's public IPv4 records synchronized with its residential WAN address.
 
 | Version | Focus | Status |
 |---|---|---|
@@ -232,7 +232,7 @@ The v1.0.0 milestone established the declarative NixOS infrastructure and native
 
 v1.1.0 provides an independent off-site backup repository, enforced remote retention, weekly structural verification and representative restore testing, quarterly full-data verification, and a documented disaster-recovery procedure.
 
-The next milestone is **v1.2.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
+The next release is **v1.2.0**, introducing Namecheap Dynamic DNS for the homelab's public IPv4 records. The subsequent engineering milestone is **v1.3.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
 
 The v1.1.0 recovery procedure has not been rehearsed on a replacement host. The automated restore test validates representative `ntfy` data rather than proving complete recovery of every application. Backup-freshness alerting remains planned work.
 
