@@ -3,6 +3,11 @@
 {
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # The Seagate Expansion USB bridge (0bc2:2322) has a reported UAS
+  # compatibility issue. Force USB Mass Storage Bulk-Only Transport.
+  boot.kernelParams = [
+    "usb-storage.quirks=0bc2:2322:u"
+  ];
   time.timeZone = "America/Halifax";
   nixpkgs.config.allowUnfreePackages = [
     "minecraft-server"
