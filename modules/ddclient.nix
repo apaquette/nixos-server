@@ -17,6 +17,7 @@
       "seerr"
       "immich"
       "ntfy"
+      "mc"
     ];
 
     interval = "5min";
