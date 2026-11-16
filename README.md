@@ -241,6 +241,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and enginee
 ## Documentation
 
 * [Architecture](docs/architecture.md)
+* [Dynamic DNS](docs/dynamic-dns.md)
 * [Backup and Restore](docs/backup-and-restore.md)
 * [Disaster Recovery](docs/disaster-recovery.md)
 * [Roadmap](docs/roadmap.md)
