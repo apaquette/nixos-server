@@ -15,6 +15,7 @@ The updater manages these host labels in the `alexpaquette.dev` DNS zone:
 | `seerr` | `seerr.alexpaquette.dev` |
 | `immich` | `immich.alexpaquette.dev` |
 | `ntfy` | `ntfy.alexpaquette.dev` |
+| `mc` | `mc.alexpaquette.dev` |
 
 The module intentionally configures IPv4 only. It does not manage AAAA records.
 
@@ -72,6 +73,7 @@ dig +short A jellyfin.alexpaquette.dev
 dig +short A seerr.alexpaquette.dev
 dig +short A immich.alexpaquette.dev
 dig +short A ntfy.alexpaquette.dev
+dig +short A mc.alexpaquette.dev
 ```
 
 The records should converge on the current public IPv4 address. DNS caching and TTLs can delay when external resolvers observe an update.
@@ -82,6 +84,6 @@ The updater does not modify the local `dnsmasq` overrides. LAN clients should co
 
 - Check `systemctl status ddclient.service` and `journalctl -u ddclient.service` for Namecheap response errors.
 - Confirm the domain still uses Namecheap DNS and Dynamic DNS remains enabled.
-- Confirm all five host labels exist as Dynamic DNS A records.
+- Confirm all six host labels exist as Dynamic DNS A records.
 - Confirm the SOPS key is present in `secrets/homelab.yaml` and the runtime secret exists at `/run/secrets/namecheap-ddns-password`.
 - Do not print the secret or paste it into logs when troubleshooting.
