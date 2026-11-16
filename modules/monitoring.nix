@@ -61,6 +61,11 @@ in
       "homelab-storage-notify@%p.service"
     ];
 
+    unitConfig.RequiresMountsFor = [
+      "/mnt/myraid"
+      "/mnt/backup"
+    ];
+
     serviceConfig = {
       Type = "oneshot";
 

@@ -14,6 +14,14 @@ with helpers;
     config.systemd.timers.homelab-storage-health.timerConfig.OnUnitActiveSec)
 
   (assertEqual
+    "storage health required mounts"
+    [
+      "/mnt/myraid"
+      "/mnt/backup"
+    ]
+    config.systemd.services.homelab-storage-health.unitConfig.RequiresMountsFor)
+
+  (assertEqual
     "storage health failure notification"
     [ "homelab-storage-notify@%p.service" ]
     config.systemd.services.homelab-storage-health.onFailure)
