@@ -140,13 +140,13 @@ The next release is v1.2.0, which adds Namecheap Dynamic DNS for the homelab's p
 
 **Priority: High**
 
-**Status: In Progress**
+**Status: Complete**
 
 v1.2.0 adds automated Namecheap Dynamic DNS updates to keep the homelab's public IPv4 records synchronized with the residential WAN address.
 
 ### Automated DNS updates
 
-**Status: In Progress**
+**Status: Complete**
 
 - Use the NixOS `services.ddclient` integration with the Namecheap Dynamic DNS protocol.
 - Discover the current public IPv4 address through IPify.
@@ -157,7 +157,7 @@ v1.2.0 adds automated Namecheap Dynamic DNS updates to keep the homelab's public
 
 ### Secret management
 
-**Status: In Progress**
+**Status: Complete**
 
 - Store the domain-specific Namecheap Dynamic DNS password in the encrypted SOPS secrets file.
 - Expose the decrypted password only through the sops-nix runtime secret.
@@ -166,7 +166,7 @@ v1.2.0 adds automated Namecheap Dynamic DNS updates to keep the homelab's public
 
 ### Configuration tests and operations
 
-**Status: In Progress**
+**Status: Complete**
 
 - Add declarative assertions for the ddclient protocol, server, account, managed host labels, update interval, IPv4-only behaviour, timer, and secret permissions.
 - Document Namecheap DNS prerequisites, secret setup, deployment, verification, and troubleshooting.
@@ -174,14 +174,14 @@ v1.2.0 adds automated Namecheap Dynamic DNS updates to keep the homelab's public
 
 ### Acceptance criteria
 
-The v1.2.0 release is ready when:
+The v1.2.0 acceptance criteria are complete:
 
-- All six host labels exist in Namecheap as A+ Dynamic DNS records.
-- The encrypted Namecheap Dynamic DNS password is present in the SOPS file and the system build succeeds.
-- `nix flake check` and the complete NixOS system build pass.
-- The ddclient timer is active and a service execution completes successfully.
-- All six public A records resolve to the current public IPv4 address.
-- Local dnsmasq overrides continue resolving service hostnames to the homelab's private LAN address.
+- [x] All six host labels exist in Namecheap as A+ Dynamic DNS records.
+- [x] The encrypted Namecheap Dynamic DNS password is present in the SOPS file and the system build succeeds.
+- [x] `nix flake check` and the complete NixOS system build pass.
+- [x] The ddclient timer is active and a service execution completes successfully.
+- [x] All six public A records resolve to the current public IPv4 address.
+- [x] Local dnsmasq overrides continue resolving service hostnames to the homelab's private LAN address.
 
 ---
 
