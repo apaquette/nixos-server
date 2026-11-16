@@ -53,4 +53,10 @@
     "EFI variable access enabled"
     true
     config.boot.loader.efi.canTouchEfiVariables)
+
+  # The Seagate Expansion USB bridge (0bc2:2322) must use BOT instead of UAS.
+  (helpers.assertContains
+    "Seagate Expansion UAS compatibility quirk"
+    "usb-storage.quirks=0bc2:2322:u"
+    config.boot.kernelParams)
 ]
