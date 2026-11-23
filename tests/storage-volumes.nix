@@ -1,5 +1,19 @@
 { config, helpers, ... }:
 
+let
+  storageResolver = import ../modules/lib/storage.nix {
+    config.server.storage = {
+      volumes.primary.mountPoint = "/mnt/data";
+      roles.applicationData = "primary";
+    };
+  };
+
+  missingBackupRole = builtins.tryEval (
+    builtins.deepSeq
+      (storageResolver.mountPointForRole "localBackup" "Optionality test")
+      true
+  );
+in
 with helpers;
 
 [
@@ -68,4 +82,9 @@ with helpers;
     "backup volume mount options"
     [ "nofail" ]
     config.fileSystems."/mnt/backup".options)
+
+  (assertEqual
+    "an unused local-backup role is optional"
+    false
+    missingBackupRole.success)
 ]
