@@ -1,24 +1,30 @@
-{ config, ... }:
+{ config, lib, ... }:
 
+let
+  publicHostnames = lib.filter
+    (hostname: hostname != null)
+    (lib.mapAttrsToList
+      (_: service:
+        if service.exposure == "public" then service.hostname else null)
+      config.server.services);
+
+  domainLabels = lib.sort builtins.lessThan
+    (map
+      (hostname: lib.removeSuffix ".${config.server.network.publicDomain}" hostname)
+      publicHostnames);
+in
 {
-  users.groups.ddclient-secrets = {};
+  users.groups.ddclient-secrets = { };
 
   services.ddclient = {
     enable = true;
 
     protocol = "namecheap";
     server = "dynamicdns.park-your-domain.com";
-    username = "alexpaquette.dev";
+    username = config.server.network.publicDomain;
     passwordFile = config.sops.secrets."namecheap-ddns-password".path;
 
-    domains = [
-      "cloud"
-      "jellyfin"
-      "seerr"
-      "immich"
-      "ntfy"
-      "mc"
-    ];
+    domains = domainLabels;
 
     interval = "5min";
     ssl = true;

@@ -1,8 +1,13 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   network = config.server.network;
-
+  httpServices = lib.filterAttrs
+    (_: service:
+      service.httpUpstream != null
+      && service.hostname != null
+      && service.exposure != "loopback")
+    config.server.services;
 in
 {
   services.dnsmasq = {
@@ -19,8 +24,8 @@ in
       ];
       log-dhcp = true;
       address = map
-        (hostname: "/${hostname}/${network.lanAddress}")
-        network.localDnsNames;
+        (service: "/${service.hostname}/${network.lanAddress}")
+        (builtins.attrValues httpServices);
       server = network.dnsServers;
       no-resolv = true;
       cache-size = 1000;

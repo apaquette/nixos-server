@@ -10,21 +10,7 @@
     dhcpHosts = [
       "b4:2e:99:fb:61:ae,192.168.2.100,nixos-desktop"
     ];
-    localDnsNames = [
-      "jellyfin.alexpaquette.dev"
-      "seerr.alexpaquette.dev"
-      "immich.alexpaquette.dev"
-      "cloud.alexpaquette.dev"
-      "ntfy.alexpaquette.dev"
-      "radarr.alexpaquette.dev"
-      "sonarr.alexpaquette.dev"
-      "prowlarr.alexpaquette.dev"
-      "qbittorrent.alexpaquette.dev"
-      "cockpit.alexpaquette.dev"
-      "status.alexpaquette.dev"
-      "beszel.alexpaquette.dev"
-      "jenkins.alexpaquette.dev"
-      "homepage.alexpaquette.dev"
-    ];
+    trustedNetworks = [ "192.168.2.0/24" ];
+    publicDomain = "alexpaquette.dev";
   };
 }

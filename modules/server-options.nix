@@ -38,11 +38,49 @@ in
       default = [ ];
       description = "Static DHCP host reservations for the LAN.";
     };
-    localDnsNames = mkOption {
+    trustedNetworks = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = "Hostnames that the local DNS resolver should map to the host's LAN address.";
+      description = "Trusted source CIDRs permitted to reach LAN-only service ingress.";
     };
+    publicDomain = mkOption {
+      type = types.str;
+      description = "Public DNS zone used by host-declared public service names.";
+    };
+  };
+
+  options.server.services = mkOption {
+    type = types.attrsOf (types.submodule {
+      options = {
+        exposure = mkOption {
+          type = types.enum [ "public" "lan" "loopback" ];
+          default = "loopback";
+          description = "Client access policy for this imported service.";
+        };
+        hostname = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional fully qualified hostname for HTTP or direct public ingress.";
+        };
+        httpUpstream = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional HTTP reverse-proxy backend in host:port form.";
+        };
+        tcpPorts = mkOption {
+          type = types.listOf (types.ints.between 1 65535);
+          default = [ ];
+          description = "Direct TCP ingress ports required by this service.";
+        };
+        udpPorts = mkOption {
+          type = types.listOf (types.ints.between 1 65535);
+          default = [ ];
+          description = "Direct UDP ingress ports required by this service.";
+        };
+      };
+    });
+    default = { };
+    description = "Contracts for services imported by this host; the host supplies exposure and hostname policy.";
   };
 
   options.server.storage = {
