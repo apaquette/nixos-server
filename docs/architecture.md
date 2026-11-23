@@ -62,7 +62,7 @@ Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage h
 
 Storage roles are independent. A host may provide application-data storage without local backup storage, or omit host-provided data storage if its selected services do not need it. The backup root and backup device are required only when the host selects modules that use local backup storage. RAID support is also optional.
 
-The current configuration does not fully meet this target: the backup module aggregates jobs for several applications, and storage/monitoring modules assume both data and backup mounts. These are v1.3.0 refactoring requirements, not guarantees of the current implementation.
+The current configuration does not fully meet this target: the backup module aggregates jobs for several applications, storage/monitoring modules assume both data and backup mounts, and internal Caddy virtual hosts do not yet have explicit LAN source restrictions. These are v1.3.0 refactoring requirements, not guarantees of the current implementation.
 
 The module design follows SOLID at the configuration boundary:
 
@@ -94,12 +94,19 @@ Internal service names resolve to the host on the local network, while Caddy han
 
 Caddy is the single reverse-proxy entry point for HTTP services.
 
-Two access patterns are used:
+The target design distinguishes three client access policies:
 
-* **public services** use externally reachable TLS endpoints
-* **internal services** use Caddy's internal TLS authority and are restricted to the LAN
+* **public** — accessible from outside the trusted LAN through an explicitly configured public ingress.
+* **lan** — accessible only from configured trusted local networks. Caddy must enforce source restrictions, or another ingress mechanism must provide equivalent controls.
+* **loopback** — accessible only to processes on the same host, with no LAN or public ingress.
 
-This keeps application services bound to local interfaces where possible rather than exposing individual application listeners directly.
+These policies are independent of the backend listener. For example, Jellyfin can listen on loopback while Caddy provides public access; Homepage can listen on loopback while Caddy exposes it only to LAN clients. Direct TCP/UDP services such as Minecraft declare their own ingress protocol and port rather than using Caddy.
+
+Caddy consumes HTTP(S) service contracts and applies the declared access policy. The firewall consumes the ingress requirements and opens only the necessary ports and sources. Direct service ingress is handled by the relevant service/network integration.
+
+DNS is separate from exposure policy. Public DNS records and local DNS overrides do not authorize access. A public service may also have a local DNS override resolving to the server's LAN address. Conversely, a private DNS record does not make a route private.
+
+**Current implementation limitation:** several internal virtual hosts currently use `tls internal`, but that only selects Caddy's internal certificate authority; it does not restrict clients to the LAN. Those hosts must not be considered securely LAN-only until explicit source restrictions or equivalent ingress controls are implemented and tested. Actual public reachability also depends on router/NAT forwarding outside this repository.
 
 ## Application services
 
@@ -122,7 +129,7 @@ This keeps service-specific concerns isolated while allowing the host configurat
 
 ## Persistent storage
 
-The host uses separate storage roles for operating-system state, primary application/media data, and backups.
+The homelab currently uses separate physical storage resources for operating-system state, primary application/media data, and local backups. The reusable architecture should describe storage resources generically and assign optional logical roles to them.
 
 ```text
 System NVMe
@@ -145,7 +152,40 @@ Backup storage
 
 The large RAID-backed volume is treated as application/data storage rather than as an operating-system filesystem.
 
-The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository. The mount points and backing devices are supplied by the host through `server.storage.dataRoot`, `server.storage.backupRoot`, `server.storage.dataDevice`, and `server.storage.backupDevice`.
+The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository. Keeping these resources physically separate provides a different failure domain for local backups.
+
+The target host interface declares each volume once, for example:
+
+```nix
+server.storage.volumes = {
+  primary = {
+    device = "/dev/disk/by-uuid/<primary-volume-uuid>";
+    mountPoint = "/mnt/myraid";
+    fsType = "ext4";
+    options = [ "nofail" ];
+  };
+
+  backup = {
+    device = "/dev/disk/by-uuid/<backup-volume-uuid>";
+    mountPoint = "/mnt/backup";
+    fsType = "ext4";
+    options = [ "nofail" ];
+  };
+};
+
+server.storage.roles = {
+  applicationData = "primary";
+  localBackup = "backup";
+};
+```
+
+Services consume logical roles rather than physical volume names or duplicated mount-path options. A host without local backups can omit the `localBackup` assignment and omit backup modules. A module that requires a role must declare that dependency and fail evaluation clearly if the host has not assigned it.
+
+The roles are references, not additional storage resources. Multiple roles may refer to the same volume when intentional, but this does not provide physical failure isolation. For the homelab, `applicationData` and `localBackup` should continue to refer to separate physical resources.
+
+The generic volume interface is initially intended for local filesystem mounts used by the current hosts. RAID assembly remains host-specific; network and object-storage backends should be introduced only when a concrete host requires them.
+
+The existing Phase 1 implementation still uses `server.storage.dataRoot`, `server.storage.backupRoot`, `server.storage.dataDevice`, and `server.storage.backupDevice`. Replacing those transitional options with the generic inventory and role assignments is future v1.3.0 implementation work.
 
 ## Databases
 
@@ -225,10 +265,10 @@ Failure paths send notifications through ntfy.
 Restic provides both a local recovery path and an off-site copy. Application snapshots are written to the local repository on the dedicated backup disk:
 
 ```text
-${server.storage.backupRoot}/Restic/${networking.hostName}
+${server.storage.volumes.<localBackup-role>.mountPoint}/Restic/${networking.hostName}
 ```
 
-For the homelab this resolves to `/mnt/backup/Restic/homelab`.
+The `localBackup` role resolves to the volume assigned by the host. For the homelab this will continue to resolve to `/mnt/backup/Restic/homelab`. The current Phase 1 implementation still uses `server.storage.backupRoot` until the generic volume/role interface is implemented.
 
 The local repository is replicated to a separate Restic repository in Cloudflare R2:
 
