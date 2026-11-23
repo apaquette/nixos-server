@@ -7,9 +7,10 @@ let
 
   immichUploadLocation = builtins.dirOf config.services.immich.mediaLocation;
 
+  # Match the scheduled and systemd dependency order in modules/backups.nix.
   serviceBackups = [
-    "immich"
     "nextcloud"
+    "immich"
     "minecraft"
     "jellyfin"
     "sonarr"
