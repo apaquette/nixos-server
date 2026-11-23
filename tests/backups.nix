@@ -7,7 +7,7 @@ let
 
   immichUploadLocation = builtins.dirOf config.services.immich.mediaLocation;
 
-  # Match the scheduled and systemd dependency order in modules/backups.nix.
+  # Keep this list in scheduled execution order; systemd chains each backup after its predecessor.
   serviceBackups = [
     "nextcloud"
     "immich"
