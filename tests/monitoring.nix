@@ -25,21 +25,21 @@ with helpers;
     "storage health failure notification"
     [ "homelab-storage-notify@%p.service" ]
     config.systemd.services.homelab-storage-health.onFailure)
-builtins.all
-  (
-    name:
-    builtins.elem
-      "homelab-backup-notify@%p.service"
-      config.systemd.services."restic-backups-${name}".onFailure
-  )
-  [
-    "nextcloud"
-    "immich"
-    "minecraft"
-    "jellyfin"
-    "sonarr"
-    "radarr"
-    "beszel"
-    "ntfy"
-  ]
+
+  # Keep the aggregate backup-notification invariant as one boolean test item.
+  (builtins.all
+    (name:
+      builtins.elem
+        "homelab-backup-notify@%p.service"
+        config.systemd.services."restic-backups-${name}".onFailure)
+    [
+      "nextcloud"
+      "immich"
+      "minecraft"
+      "jellyfin"
+      "sonarr"
+      "radarr"
+      "beszel"
+      "ntfy"
+    ])
 ]
