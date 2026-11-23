@@ -48,11 +48,13 @@ The reusable modules consume typed host values declared by `modules/server-optio
 The current interfaces are:
 
 - `server.network.*` for the interface identity, static LAN address, gateway, DNS servers, DHCP range, reservations, and host-owned local DNS names.
-- `server.storage.*` for the data and backup mount roots, backing devices, and optional RAID device.
+- `server.storage.volumes` for host-defined local filesystem resources. Each volume is declared once with its device, mount point, filesystem type, and mount options.
+- `server.storage.roles` for optional semantic references such as `applicationData` and `localBackup`.
+- `server.storage.raidDevice` for an optional host-specific RAID device monitored by storage health checks.
 
-Networking, dnsmasq, filesystem mounts, monitoring, backup jobs, and storage-aware application modules consume these options rather than embedding the homelab's physical values. Application-specific subdirectories remain owned by the relevant service modules. Hardware-specific RAID assembly remains in the host's storage definition.
+The storage module generates NixOS filesystem mount definitions from the host's volume inventory. Service modules resolve the logical role they require to a volume mount point, then retain ownership of application-specific subdirectories. Hosts can omit unused volumes and roles. Hardware-specific RAID assembly remains in the host's storage definition.
 
-For the homelab, these values retain the current runtime configuration. A future host can provide different values through its own host files while reusing the same modules.
+The homelab declares its primary and backup disks once, then assigns `applicationData` and `localBackup` to those resources. The existing physical devices and mount points remain unchanged.
 
 ## Optional module composition
 
@@ -62,7 +64,7 @@ Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage h
 
 Storage resources and logical roles are independent. A host may provide an `applicationData` role without a `localBackup` role, or omit host-provided data storage if its selected services do not need it. A backup volume and role are required only when the host selects modules that use local backup storage. RAID support is also optional.
 
-The current configuration does not fully meet this target: the backup module aggregates jobs for several applications, storage/monitoring modules assume both data and backup mounts, and internal Caddy virtual hosts do not yet have explicit LAN source restrictions. These are v1.3.0 refactoring requirements, not guarantees of the current implementation.
+The current configuration does not fully meet every target: the backup module still aggregates jobs for several applications, and internal Caddy virtual hosts do not yet have explicit LAN source restrictions. The fixed data/backup storage interface has been replaced by generic volumes and optional logical roles. The synthetic second-host test and enforced service exposure policies remain to be implemented.
 
 The module design follows SOLID at the configuration boundary:
 
@@ -156,7 +158,7 @@ The large RAID-backed volume is treated as application/data storage rather than 
 
 The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository. Keeping these resources physically separate provides a different failure domain for local backups.
 
-The target host interface declares each volume once, for example:
+The host declares each volume once:
 
 ```nix
 server.storage.volumes = {
@@ -181,13 +183,13 @@ server.storage.roles = {
 };
 ```
 
-Services consume logical roles rather than physical volume names or duplicated mount-path options. A host without local backups can omit the `localBackup` assignment and omit backup modules. A module that requires a role must declare that dependency and fail evaluation clearly if the host has not assigned it.
+The storage module converts these resources into filesystem mounts. Service modules resolve logical roles rather than embedding physical volume names or mount paths. For example, Immich, Jellyfin, Nextcloud, and the media automation module consume the `applicationData` role; the Restic module consumes `localBackup`.
 
-The roles are references, not additional storage resources. Multiple roles may refer to the same volume when intentional, but this does not provide physical failure isolation. For the homelab, `applicationData` and `localBackup` should continue to refer to separate physical resources.
+A host without local backups can omit both the backup volume and the `localBackup` assignment, provided it also omits modules that require local backup storage. The role resolver reports a clear evaluation error when an imported consumer requires a role that is not assigned or references an unknown volume.
 
-The generic volume interface is initially intended for local filesystem mounts used by the current hosts. RAID assembly remains host-specific; network and object-storage backends should be introduced only when a concrete host requires them.
+Roles are references, not additional storage resources. Multiple roles may refer to the same volume when intentional, but this does not provide physical failure isolation. For the homelab, `applicationData` and `localBackup` continue to refer to separate physical resources.
 
-The existing Phase 1 implementation still uses `server.storage.dataRoot`, `server.storage.backupRoot`, `server.storage.dataDevice`, and `server.storage.backupDevice`. Replacing those transitional options with the generic inventory and role assignments is future v1.3.0 implementation work.
+The volume interface currently models local filesystem mounts. RAID assembly remains host-specific; network and object-storage backends should be introduced only when a concrete host requires them. The storage module also checks that declared mount points are unique and that logical roles reference declared volumes.
 
 ## Databases
 
@@ -270,7 +272,7 @@ Restic provides both a local recovery path and an off-site copy. Application sna
 ${server.storage.volumes.<localBackup-role>.mountPoint}/Restic/${networking.hostName}
 ```
 
-The `localBackup` role resolves to the volume assigned by the host. For the homelab this will continue to resolve to `/mnt/backup/Restic/homelab`. The current Phase 1 implementation still uses `server.storage.backupRoot` until the generic volume/role interface is implemented.
+The `localBackup` role resolves to the volume assigned by the host. For the homelab this resolves to `/mnt/backup/Restic/homelab`.
 
 The local repository is replicated to a separate Restic repository in Cloudflare R2:
 
