@@ -28,5 +28,6 @@ in
     message = "Assertion must be boolean.";
   }))
   (helpers.assertEqual "unsupported result is rejected" true (rejected 42))
+  (helpers.assertEqual "function result is rejected" true (rejected (value: value)))
   (helpers.assertEqual "non-list assertion group is rejected" true (rejected { assertions = true; }))
 ]
