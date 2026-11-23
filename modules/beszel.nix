@@ -2,13 +2,11 @@
 
 let
   storage = config.server.storage;
+  storageResolver = import ./lib/storage.nix { inherit config; };
 
   roleFilesystem = role: suffix:
     if builtins.hasAttr role storage.roles then
-      let
-        volumeName = storage.roles.${role};
-      in
-      "${storage.volumes.${volumeName}.mountPoint}${suffix}"
+      "${storageResolver.mountPointForRole role "Beszel"}${suffix}"
     else
       null;
 
