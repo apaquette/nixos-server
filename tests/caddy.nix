@@ -20,7 +20,7 @@ with helpers;
 
   (assertEqual
     "Caddy Jellyfin upstream"
-    "reverse_proxy ${config.server.network.lanAddress}:8096\n"
+    "reverse_proxy 127.0.0.1:8096\n"
     config.services.caddy.virtualHosts."jellyfin.alexpaquette.dev".extraConfig)
 
   (assertEqual
@@ -55,7 +55,7 @@ with helpers;
 
   (assertEqual
     "Caddy qBittorrent configuration"
-    "tls internal\nreverse_proxy ${config.server.network.lanAddress}:8080\n"
+    "tls internal\nreverse_proxy 127.0.0.1:8080\n"
     config.services.caddy.virtualHosts."qbittorrent.alexpaquette.dev".extraConfig)
 
   (assertEqual

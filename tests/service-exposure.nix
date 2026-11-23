@@ -25,7 +25,7 @@ with helpers;
 
   (assertEqual
     "Jellyfin HTTP upstream"
-    "192.168.2.20:8096"
+    "127.0.0.1:8096"
     config.server.services.jellyfin.httpUpstream)
 
   (assertEqual
@@ -62,6 +62,30 @@ with helpers;
     "PostgreSQL host-local exposure policy"
     "loopback"
     config.server.services.postgresql.exposure)
+
+  (assertEqual "Nextcloud HTTP endpoint is provided by its service module" "127.0.0.1:8081" config.server.services.cloud.httpUpstream)
+  (assertEqual "Seerr HTTP endpoint is provided by its service module" "127.0.0.1:5055" config.server.services.seerr.httpUpstream)
+  (assertEqual "Immich HTTP endpoint is provided by its service module" "127.0.0.1:2283" config.server.services.immich.httpUpstream)
+  (assertEqual "ntfy HTTP endpoint is provided by its service module" "127.0.0.1:8093" config.server.services.ntfy.httpUpstream)
+  (assertEqual "Radarr HTTP endpoint is provided by its service module" "127.0.0.1:7878" config.server.services.radarr.httpUpstream)
+  (assertEqual "Sonarr HTTP endpoint is provided by its service module" "127.0.0.1:8989" config.server.services.sonarr.httpUpstream)
+  (assertEqual "Prowlarr HTTP endpoint is provided by its service module" "127.0.0.1:9696" config.server.services.prowlarr.httpUpstream)
+  (assertEqual "qBittorrent HTTP endpoint is provided by its service module" "127.0.0.1:8080" config.server.services.qbittorrent.httpUpstream)
+  (assertEqual "Cockpit HTTP endpoint is provided by its service module" "127.0.0.1:9090" config.server.services.cockpit.httpUpstream)
+  (assertEqual "Uptime Kuma HTTP endpoint is provided by its service module" "127.0.0.1:3001" config.server.services.status.httpUpstream)
+  (assertEqual "Beszel Hub HTTP endpoint is provided by its service module" "127.0.0.1:8090" config.server.services.beszel.httpUpstream)
+  (assertEqual "Jenkins HTTP endpoint is provided by its service module" "127.0.0.1:8082" config.server.services.jenkins.httpUpstream)
+  (assertEqual "Homepage HTTP endpoint is provided by its service module" "127.0.0.1:3000" config.server.services.homepage.httpUpstream)
+
+  (assertEqual
+    "Beszel agent firewall is managed by the exposure module"
+    false
+    config.services.beszel.agent.openFirewall)
+
+  (assertEqual
+    "Beszel agent port is not globally opened"
+    false
+    (builtins.elem 45876 config.networking.firewall.allowedTCPPorts))
 
   (assertContains
     "LAN-only Homepage route requires internal TLS"
