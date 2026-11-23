@@ -1,9 +1,25 @@
 {
   server.storage = {
-    dataRoot = "/mnt/myraid";
-    backupRoot = "/mnt/backup";
-    dataDevice = "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55";
-    backupDevice = "/dev/disk/by-uuid/2f26abd3-1603-4c8d-890c-a8a8aea9c5f1";
+    volumes = {
+      primary = {
+        device = "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55";
+        mountPoint = "/mnt/myraid";
+        fsType = "ext4";
+        options = [ "nofail" ];
+      };
+      backup = {
+        device = "/dev/disk/by-uuid/2f26abd3-1603-4c8d-890c-a8a8aea9c5f1";
+        mountPoint = "/mnt/backup";
+        fsType = "ext4";
+        options = [ "nofail" ];
+      };
+    };
+
+    roles = {
+      applicationData = "primary";
+      localBackup = "backup";
+    };
+
     raidDevice = "/dev/md0";
   };
 

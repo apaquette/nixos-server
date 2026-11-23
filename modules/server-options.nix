@@ -46,22 +46,38 @@ in
   };
 
   options.server.storage = {
-    dataRoot = mkOption {
-      type = types.str;
-      description = "Filesystem mount point for application and media data.";
+    volumes = mkOption {
+      type = types.attrsOf (types.submodule {
+        options = {
+          device = mkOption {
+            type = types.str;
+            description = "Device identifier for this storage volume.";
+          };
+          mountPoint = mkOption {
+            type = types.str;
+            description = "Filesystem mount point for this storage volume.";
+          };
+          fsType = mkOption {
+            type = types.str;
+            description = "Filesystem type for this storage volume.";
+          };
+          options = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "Mount options for this storage volume.";
+          };
+        };
+      });
+      default = { };
+      description = "Host-defined local filesystem volumes, keyed by resource name.";
     };
-    backupRoot = mkOption {
-      type = types.str;
-      description = "Filesystem mount point for local backups.";
+
+    roles = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      description = "Optional logical storage roles mapped to names in server.storage.volumes.";
     };
-    dataDevice = mkOption {
-      type = types.str;
-      description = "Device identifier mounted at server.storage.dataRoot.";
-    };
-    backupDevice = mkOption {
-      type = types.str;
-      description = "Device identifier mounted at server.storage.backupRoot.";
-    };
+
     raidDevice = mkOption {
       type = types.nullOr types.str;
       default = null;
