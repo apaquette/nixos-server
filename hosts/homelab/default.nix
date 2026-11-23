@@ -19,6 +19,8 @@
     ./network.nix
     ./storage.nix
     ../../modules/server-options.nix
+    ../../modules/networking.nix
+    ../../modules/storage.nix
     ../../modules/ddclient.nix
     ../../modules/caddy.nix
     ../../modules/dnsmasq.nix
