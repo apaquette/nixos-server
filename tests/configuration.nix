@@ -31,6 +31,9 @@ let
     (import ./jenkins.nix { inherit config lib; })
     (import ./nextcloud.nix { inherit config pkgs lib helpers; })
 
+    # Test the assertion-evaluation contract itself.
+    (import ./test-runner.nix { inherit helpers; })
+
     # Repository structure
     (helpers.assertPathExists "flake.nix" ../flake.nix)
     (helpers.assertPathExists "homelab host" ../hosts/homelab/default.nix)
