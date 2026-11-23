@@ -24,22 +24,22 @@
   (helpers.assertEqual
     "myraid filesystem type"
     "ext4"
-    config.fileSystems."/mnt/myraid".fsType)
+    config.fileSystems.config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint.fsType)
 
   (helpers.assertContains
     "myraid filesystem options"
     "nofail"
-    config.fileSystems."/mnt/myraid".options)
+    config.fileSystems.config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint.options)
 
   (helpers.assertEqual
     "backup filesystem type"
     "ext4"
-    config.fileSystems."/mnt/backup".fsType)
+    config.fileSystems.config.server.storage.volumes.${config.server.storage.roles.localBackup}.mountPoint.fsType)
 
   (helpers.assertContains
     "backup filesystem options"
     "nofail"
-    config.fileSystems."/mnt/backup".options)
+    config.fileSystems.config.server.storage.volumes.${config.server.storage.roles.localBackup}.mountPoint.options)
 
   (helpers.assertContains
     "initrd NVMe module"
