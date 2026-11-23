@@ -15,10 +15,9 @@ with helpers;
 
   (assertEqual
     "storage health required mounts"
-    [
-      config.server.storage.dataRoot
-      config.server.storage.backupRoot
-    ]
+    (map
+      (volume: volume.mountPoint)
+      (builtins.attrValues config.server.storage.volumes))
     config.systemd.services.homelab-storage-health.unitConfig.RequiresMountsFor)
 
   (assertEqual
