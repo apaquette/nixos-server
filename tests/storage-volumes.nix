@@ -30,6 +30,16 @@ with helpers;
     config.server.storage.roles)
 
   (assertEqual
+    "application data role resolves to its volume mount point"
+    "/mnt/myraid"
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint)
+
+  (assertEqual
+    "local backup role resolves to its volume mount point"
+    "/mnt/backup"
+    config.server.storage.volumes.${config.server.storage.roles.localBackup}.mountPoint)
+
+  (assertEqual
     "primary volume mounted at declared mount point"
     "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55"
     config.fileSystems."/mnt/myraid".device)
