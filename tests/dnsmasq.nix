@@ -1,4 +1,4 @@
-{ config, helpers, ... }:
+{ config, lib, helpers, ... }:
 
 with helpers;
 
@@ -52,9 +52,23 @@ with helpers;
     config.services.dnsmasq.settings.dhcp-host)
 
   (assertEqual
-    "dnsmasq local DNS entries"
-    (map
-      (hostname: "/${hostname}/${config.server.network.lanAddress}")
-      config.server.network.localDnsNames)
-    config.services.dnsmasq.settings.address)
+    "dnsmasq local DNS entries for enabled HTTP and direct services"
+    [
+      "/beszel.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/cloud.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/cockpit.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/homepage.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/immich.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/jenkins.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/jellyfin.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/mc.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/ntfy.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/prowlarr.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/qbittorrent.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/radarr.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/seerr.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/sonarr.alexpaquette.dev/${config.server.network.lanAddress}"
+      "/status.alexpaquette.dev/${config.server.network.lanAddress}"
+    ]
+    (lib.sort builtins.lessThan config.services.dnsmasq.settings.address))
 ]

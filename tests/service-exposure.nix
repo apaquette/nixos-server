@@ -104,7 +104,7 @@ with helpers;
 
   (assertContains
     "public Jellyfin route has no LAN-only matcher"
-    "reverse_proxy 192.168.2.20:8096"
+    "reverse_proxy 127.0.0.1:8096"
     config.services.caddy.virtualHosts."jellyfin.alexpaquette.dev".extraConfig)
 
   (assertEqual
@@ -139,7 +139,12 @@ with helpers;
     config.services.ddclient.domains)
 
   (assertEqual
-    "local DNS records derive from enabled HTTP services"
-    14
+    "local DNS records derive from enabled HTTP and direct services"
+    15
     (builtins.length config.services.dnsmasq.settings.address))
+
+  (assertContains
+    "public Minecraft has a local DNS override"
+    "/mc.alexpaquette.dev/192.168.2.20"
+    config.services.dnsmasq.settings.address)
 ]
