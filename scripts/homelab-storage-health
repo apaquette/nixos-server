@@ -6,35 +6,38 @@ fail() {
     exit 1
 }
 
-# RAID0 array must exist and be active.
-[[ -e /dev/md0 ]] || fail "/dev/md0 does not exist"
+# Check RAID health only when the host declares a RAID device.
+if [[ "@RAID_DEVICE@" != "none" ]]; then
+    [[ -e "@RAID_DEVICE@" ]] || fail "@RAID_DEVICE@ does not exist"
 
-MD_STATE="$(cat /sys/block/md0/md/array_state 2>/dev/null || true)"
+    RAID_NAME="$(basename "@RAID_DEVICE@")"
+    MD_STATE="$(cat "/sys/block/${RAID_NAME}/md/array_state" 2>/dev/null || true)"
 
-case "$MD_STATE" in
-    clean|active|active-idle)
-        ;;
-    *)
-        fail "/dev/md0 array state is '$MD_STATE'"
-        ;;
-esac
+    case "$MD_STATE" in
+        clean|active|active-idle)
+            ;;
+        *)
+            fail "@RAID_DEVICE@ array state is '$MD_STATE'"
+            ;;
+    esac
+fi
 
 # Both filesystems must be mounted.
-mountpoint -q @DATA_ROOT@ ||
+mountpoint -q "@DATA_ROOT@" ||
     fail "@DATA_ROOT@ is not mounted"
 
-mountpoint -q @BACKUP_ROOT@ ||
+mountpoint -q "@BACKUP_ROOT@" ||
     fail "@BACKUP_ROOT@ is not mounted"
 
 # Verify both mounts are writable without creating persistent files.
-if ! touch @DATA_ROOT@/.homelab-storage-health-test 2>/dev/null; then
+if ! touch "@DATA_ROOT@/.homelab-storage-health-test" 2>/dev/null; then
     fail "@DATA_ROOT@ is not writable"
 fi
-rm -f @DATA_ROOT@/.homelab-storage-health-test
+rm -f "@DATA_ROOT@/.homelab-storage-health-test"
 
-if ! touch @BACKUP_ROOT@/.homelab-storage-health-test 2>/dev/null; then
+if ! touch "@BACKUP_ROOT@/.homelab-storage-health-test" 2>/dev/null; then
     fail "@BACKUP_ROOT@ is not writable"
 fi
-rm -f @BACKUP_ROOT@/.homelab-storage-health-test
+rm -f "@BACKUP_ROOT@/.homelab-storage-health-test"
 
 exit 0

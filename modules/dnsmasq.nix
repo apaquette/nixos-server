@@ -1,56 +1,46 @@
-{ ... }:
+{ config, ... }:
 
+let
+  network = config.server.network;
+
+  localHostnames = [
+    "jellyfin.alexpaquette.dev"
+    "seerr.alexpaquette.dev"
+    "immich.alexpaquette.dev"
+    "cloud.alexpaquette.dev"
+    "ntfy.alexpaquette.dev"
+    "radarr.alexpaquette.dev"
+    "sonarr.alexpaquette.dev"
+    "prowlarr.alexpaquette.dev"
+    "qbittorrent.alexpaquette.dev"
+    "cockpit.alexpaquette.dev"
+    "status.alexpaquette.dev"
+    "beszel.alexpaquette.dev"
+    "jenkins.alexpaquette.dev"
+    "homepage.alexpaquette.dev"
+  ];
+in
 {
   services.dnsmasq = {
     enable = true;
 
     settings = {
-      interface = "lan0";
-
-      listen-address = [
-        "127.0.0.1"
-        "192.168.2.20"
-      ];
-
+      interface = network.interfaceName;
+      listen-address = [ "127.0.0.1" network.lanAddress ];
       bind-dynamic = true;
-
-      dhcp-range = "192.168.2.50,192.168.2.199,255.255.255.0,12h";
-
+      dhcp-range = network.dhcpRange;
       dhcp-option = [
-        "option:router,192.168.2.1"
-        "option:dns-server,192.168.2.20"
+        "option:router,${network.gateway}"
+        "option:dns-server,${network.lanAddress}"
       ];
-
       log-dhcp = true;
-
-      address = [
-        "/jellyfin.alexpaquette.dev/192.168.2.20"
-        "/seerr.alexpaquette.dev/192.168.2.20"
-        "/immich.alexpaquette.dev/192.168.2.20"
-        "/cloud.alexpaquette.dev/192.168.2.20"
-        "/ntfy.alexpaquette.dev/192.168.2.20"
-        "/radarr.alexpaquette.dev/192.168.2.20"
-        "/sonarr.alexpaquette.dev/192.168.2.20"
-        "/prowlarr.alexpaquette.dev/192.168.2.20"
-        "/qbittorrent.alexpaquette.dev/192.168.2.20"
-        "/cockpit.alexpaquette.dev/192.168.2.20"
-        "/status.alexpaquette.dev/192.168.2.20"
-        "/beszel.alexpaquette.dev/192.168.2.20"
-        "/jenkins.alexpaquette.dev/192.168.2.20"
-        "/homepage.alexpaquette.dev/192.168.2.20"
-      ];
-
-      server = [
-        "1.1.1.1"
-        "8.8.8.8"
-      ];
-
+      address = map
+        (hostname: "/${hostname}/${network.lanAddress}")
+        localHostnames;
+      server = network.dnsServers;
       no-resolv = true;
       cache-size = 1000;
-
-      dhcp-host = [
-        "b4:2e:99:fb:61:ae,192.168.2.100,nixos-desktop"
-      ];
+      dhcp-host = network.dhcpHosts;
     };
   };
 

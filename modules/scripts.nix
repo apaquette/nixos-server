@@ -4,10 +4,11 @@ let
   replaceStorageRoots = name: source:
     pkgs.writeScript name (
       builtins.replaceStrings
-        [ "@DATA_ROOT@" "@BACKUP_ROOT@" ]
+        [ "@DATA_ROOT@" "@BACKUP_ROOT@" "@RAID_DEVICE@" ]
         [
           config.server.storage.dataRoot
           config.server.storage.backupRoot
+          (if config.server.storage.raidDevice == null then "none" else config.server.storage.raidDevice)
         ]
         (builtins.readFile source)
     );

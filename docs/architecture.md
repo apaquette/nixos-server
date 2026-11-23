@@ -41,6 +41,19 @@ This separation allows the operating environment to remain reproducible without 
                                     notifications
 ```
 
+## Host configuration boundary
+
+The reusable modules consume typed host values declared by `modules/server-options.nix`. The host composition root supplies the concrete environment through `hosts/<hostname>/network.nix` and `hosts/<hostname>/storage.nix`.
+
+The current interfaces are:
+
+- `server.network.*` for the interface identity, static LAN address, gateway, DNS servers, DHCP range, and reservations.
+- `server.storage.*` for the data and backup mount roots, backing devices, and optional RAID device.
+
+Networking, dnsmasq, filesystem mounts, monitoring, backup jobs, and storage-aware application modules consume these options rather than embedding the homelab's physical values. Application-specific subdirectories remain owned by the relevant service modules. Hardware-specific RAID assembly remains in the host's storage definition.
+
+For the homelab, these values retain the current runtime configuration. A future host can provide different values through its own host files while reusing the same modules.
+
 ## Networking
 
 The host provides the primary LAN infrastructure used by the server.
@@ -111,7 +124,7 @@ Backup storage
 
 The large RAID-backed volume is treated as application/data storage rather than as an operating-system filesystem.
 
-The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository.
+The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository. The mount points and backing devices are supplied by the host through `server.storage.dataRoot`, `server.storage.backupRoot`, `server.storage.dataDevice`, and `server.storage.backupDevice`.
 
 ## Databases
 
@@ -191,8 +204,10 @@ Failure paths send notifications through ntfy.
 Restic provides both a local recovery path and an off-site copy. Application snapshots are written to the local repository on the dedicated backup disk:
 
 ```text
-/mnt/backup/Restic/homelab
+${server.storage.backupRoot}/Restic/${networking.hostName}
 ```
+
+For the homelab this resolves to `/mnt/backup/Restic/homelab`.
 
 The local repository is replicated to a separate Restic repository in Cloudflare R2:
 
