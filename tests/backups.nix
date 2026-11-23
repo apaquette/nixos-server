@@ -349,18 +349,18 @@ lib.flatten [
 
   {
     assertion =
-      lib.strings.hasInfix
-        "nextcloud-occ status --output=json"
-        nextcloudPrepare;
+      lib.strings.hasInfix "nextcloud-occ" nextcloudPrepare
+      && lib.strings.hasInfix "status" nextcloudPrepare
+      && lib.strings.hasInfix "--output=json" nextcloudPrepare
+      && lib.strings.hasInfix "$status_json" nextcloudPrepare;
     message =
       "Nextcloud backup must inspect existing maintenance state.";
   }
 
   {
     assertion =
-      lib.strings.hasInfix
-        "maintenance:mode --on"
-        nextcloudPrepare;
+      lib.strings.hasInfix "maintenance:mode" nextcloudPrepare
+      && lib.strings.hasInfix "--on" nextcloudPrepare;
     message =
       "Nextcloud backup must enable maintenance mode when needed.";
   }
@@ -439,9 +439,8 @@ lib.flatten [
 
   {
     assertion =
-      lib.strings.hasInfix
-        "maintenance:mode --off"
-        nextcloudCleanup;
+      lib.strings.hasInfix "maintenance:mode" nextcloudCleanup
+      && lib.strings.hasInfix "--off" nextcloudCleanup;
     message =
       "Nextcloud cleanup must restore maintenance mode when this backup enabled it.";
   }
