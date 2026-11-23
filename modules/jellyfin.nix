@@ -1,5 +1,9 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
+let
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Jellyfin";
+in
 {
   hardware.graphics = {
     enable = true;
@@ -18,13 +22,13 @@
   };
 
   systemd.services.jellyfin = {
-    after = [ "mnt-myraid.mount" ];
-    requires = [ "mnt-myraid.mount" ];
-    environment = {
-        LIBVA_DRIVER_NAME = "iHD";
-    };
+    unitConfig.RequiresMountsFor = [ applicationDataRoot ];
+    environment.LIBVA_DRIVER_NAME = "iHD";
   };
   systemd.tmpfiles.rules = [
+    "d /var/lib/jellyfin 0750 jellyfin jellyfin -"
+    "d /var/log/jellyfin 0750 jellyfin jellyfin -"
+    "d /var/cache/jellyfin 0750 jellyfin jellyfin -"
     "Z /var/lib/jellyfin/plugins 0755 jellyfin jellyfin -"
     "Z /var/lib/jellyfin/metadata 0755 jellyfin jellyfin -"
     "Z /var/lib/jellyfin/root 0755 jellyfin jellyfin -"

@@ -1,5 +1,8 @@
 { config, pkgs, lib, unstable, ... }:
 let
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Nextcloud";
+
   calendar661 =
     unstable.nextcloud35Packages.apps.calendar.overrideAttrs (_: {
       name = "nextcloud-app-calendar-6.6.1";
@@ -65,7 +68,7 @@ in
     https = true;
 
     settings = {
-      datadirectory = "${config.server.storage.dataRoot}/Nextcloud";
+      datadirectory = "${applicationDataRoot}/Nextcloud";
 
       trusted_domains = [
         "cloud.alexpaquette.dev"
@@ -145,7 +148,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart =
-        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${config.server.storage.dataRoot}/Nextcloud";
+        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${applicationDataRoot}/Nextcloud";
       RemainAfterExit = true;
     };
   };

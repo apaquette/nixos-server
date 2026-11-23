@@ -1,5 +1,9 @@
 { config, unstable, ... }:
 
+let
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Immich";
+in
 {
   services.immich = {
     enable = true;
@@ -9,7 +13,7 @@
     host = "127.0.0.1";
     port = 2283;
 
-    mediaLocation = "${config.server.storage.dataRoot}/Immich/library";
+    mediaLocation = "${applicationDataRoot}/Immich/library";
 
     machine-learning.enable = true;
     accelerationDevices = [ ];

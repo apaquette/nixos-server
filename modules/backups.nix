@@ -2,7 +2,9 @@
 { config, lib, pkgs, ... }:
 
 let
-  repository = "${config.server.storage.backupRoot}/Restic/${config.networking.hostName}";
+  storage = import ./lib/storage.nix { inherit config; };
+  localBackupRoot = storage.mountPointForRole "localBackup" "Restic backup module";
+  repository = "${localBackupRoot}/Restic/${config.networking.hostName}";
   passwordFile = config.sops.secrets."restic-repository-password".path;
 
   r2AccountId = "08a653e653431727545c1cbbc844423d";
