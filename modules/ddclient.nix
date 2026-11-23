@@ -8,7 +8,7 @@ let
       service.exposure == "public"
       && service.hostname != null
       && (
-        service.httpUpstream != null
+        (service.httpUpstream != null && config.services.caddy.enable)
         || service.tcpPorts != [ ]
         || service.udpPorts != [ ]
       ))

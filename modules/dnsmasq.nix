@@ -8,7 +8,7 @@ let
       service.hostname != null
       && service.exposure != "loopback"
       && (
-        service.httpUpstream != null
+        (service.httpUpstream != null && config.services.caddy.enable)
         || service.tcpPorts != [ ]
         || service.udpPorts != [ ]
       ))
