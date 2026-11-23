@@ -3,22 +3,6 @@
 let
   network = config.server.network;
 
-  localHostnames = [
-    "jellyfin.alexpaquette.dev"
-    "seerr.alexpaquette.dev"
-    "immich.alexpaquette.dev"
-    "cloud.alexpaquette.dev"
-    "ntfy.alexpaquette.dev"
-    "radarr.alexpaquette.dev"
-    "sonarr.alexpaquette.dev"
-    "prowlarr.alexpaquette.dev"
-    "qbittorrent.alexpaquette.dev"
-    "cockpit.alexpaquette.dev"
-    "status.alexpaquette.dev"
-    "beszel.alexpaquette.dev"
-    "jenkins.alexpaquette.dev"
-    "homepage.alexpaquette.dev"
-  ];
 in
 {
   services.dnsmasq = {
@@ -36,7 +20,7 @@ in
       log-dhcp = true;
       address = map
         (hostname: "/${hostname}/${network.lanAddress}")
-        localHostnames;
+        network.localDnsNames;
       server = network.dnsServers;
       no-resolv = true;
       cache-size = 1000;

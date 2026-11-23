@@ -38,6 +38,11 @@ in
       default = [ ];
       description = "Static DHCP host reservations for the LAN.";
     };
+    localDnsNames = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = "Hostnames that the local DNS resolver should map to the host's LAN address.";
+    };
   };
 
   options.server.storage = {

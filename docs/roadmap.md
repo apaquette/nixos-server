@@ -230,6 +230,8 @@ Move host-specific configuration out of reusable modules and into host definitio
 * Avoid duplicating service ports and connection details between modules.
 * Keep application-specific path names inside service modules while allowing the storage root to be supplied by the host.
 * Preserve clear module boundaries rather than introducing a monolithic global configuration structure.
+* Make services and operational capabilities independently optional through host-level module composition.
+* Ensure modules do not require configuration or create resources for services and capabilities that a host has not selected.
 
 ### Configuration boundary
 
@@ -258,6 +260,24 @@ modules/
 Hosts should act as **composition roots**: they assemble reusable modules and provide environment-specific values.
 
 Reusable modules should not need to know which physical or virtual host they are being deployed to.
+
+### Optional module composition and dependency boundaries
+
+Modularity must provide both reuse and **selective composition**. A host should import only the services and infrastructure capabilities it needs. Importing a module is the opt-in mechanism; a host should not need to import every service and disable unwanted ones through a growing collection of flags.
+
+The intended boundaries are:
+
+* Each application module owns that application's configuration and runtime integration. A host that does not import `jellyfin.nix` should not configure Jellyfin.
+* Cross-cutting capabilities such as reverse proxying, local DNS, backups, monitoring, and storage health checks remain independently selectable where practical.
+* Integration modules must not assume that every known application exists. They should consume declared service interfaces or capabilities and create configuration only for those that are present.
+* Dependencies must be explicit. A selected module may require a storage root, database, network interface, secret, or another service, but it must not impose that requirement on hosts that do not select the module.
+* Distinct storage roles must remain independent. Application-data storage and local backup storage are separate capabilities; a host without a backup disk must be able to omit local backup storage and backup services without supplying placeholder paths or devices.
+* Generic backup repository and maintenance logic should be separated from application-specific backup procedures. A service's backup integration should only be present when both the service and the backup capability are selected.
+* Optional RAID, external disks, reverse proxying, and other hardware or operational features must not be unconditional assumptions in general-purpose modules.
+
+This applies the relevant SOLID principles at the module boundary: single responsibility for service and capability modules, open/closed composition through adding or omitting modules rather than editing central service lists, focused interfaces for consumers, and dependency inversion through typed service/capability contracts instead of direct references to concrete application modules.
+
+The current configuration has known coupling to remove during v1.3.0: `modules/backups.nix` aggregates backup jobs for multiple applications, while storage and monitoring modules assume both data and backup filesystems. The refactor must remove these assumptions rather than merely making the host values configurable.
 
 ### Typed configuration interfaces
 
@@ -342,11 +362,15 @@ The same principle should be applied consistently to:
 * persistent service state
 * other host-specific filesystem roots
 
+The data-storage and backup-storage roles must be independently composable. A host that does not enable backups must not be required to define a backup root or backup device. A service that does not require host-provided persistent storage must not acquire a dependency on the data-storage role.
+
 ### Architectural acceptance criterion
 
 The architectural refactor is considered successful when:
 
-> A second host can be defined using the existing reusable modules without modifying those modules solely to account for differences in host address, storage root, or other deployment-specific values.
+> A second host can be defined by composing only the required modules and supplying its own environment-specific values. It must be possible to omit individual applications, local backup storage, and the backup capability without modifying unrelated reusable modules or supplying unused configuration values.
+
+The absence of an optional module must also mean the absence of its configuration: no orphaned service units, reverse-proxy routes, local DNS entries, backup jobs, or storage dependencies should remain for an omitted capability.
 
 ---
 
@@ -354,15 +378,17 @@ The architectural refactor is considered successful when:
 
 Add a synthetic second host to the test suite before introducing a real second server.
 
-The test configuration should intentionally differ from `homelab` host in values such as:
+The test configuration should intentionally differ from the `homelab` host in values such as:
 
 ```text
 LAN address
 storage root
 backup root
+selected application services
+backup capability
 ```
 
-Both configurations should use the same reusable module set.
+The synthetic host should deliberately omit at least one application service (for example, Jellyfin) and the local backup-storage/backup capability. It should import a smaller subset of the reusable modules rather than reproducing the homelab's complete service list. Modules shared by both hosts must remain the same implementations.
 
 The objective is to verify:
 

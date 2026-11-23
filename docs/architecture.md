@@ -47,12 +47,31 @@ The reusable modules consume typed host values declared by `modules/server-optio
 
 The current interfaces are:
 
-- `server.network.*` for the interface identity, static LAN address, gateway, DNS servers, DHCP range, and reservations.
+- `server.network.*` for the interface identity, static LAN address, gateway, DNS servers, DHCP range, reservations, and host-owned local DNS names.
 - `server.storage.*` for the data and backup mount roots, backing devices, and optional RAID device.
 
 Networking, dnsmasq, filesystem mounts, monitoring, backup jobs, and storage-aware application modules consume these options rather than embedding the homelab's physical values. Application-specific subdirectories remain owned by the relevant service modules. Hardware-specific RAID assembly remains in the host's storage definition.
 
 For the homelab, these values retain the current runtime configuration. A future host can provide different values through its own host files while reusing the same modules.
+
+## Optional module composition
+
+Hosts are composition roots. Each host selects its services and operational capabilities by importing the corresponding modules from its host configuration. A service module that is not imported should not configure that service or leave behind related integrations.
+
+Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage health checks must be independently selectable where practical. They must not assume that every application is installed. When such an integration is selected, it should consume a declared service interface or capability rather than directly coupling itself to a particular application's implementation.
+
+Storage roles are independent. A host may provide application-data storage without local backup storage, or omit host-provided data storage if its selected services do not need it. The backup root and backup device are required only when the host selects modules that use local backup storage. RAID support is also optional.
+
+The current configuration does not fully meet this target: the backup module aggregates jobs for several applications, and storage/monitoring modules assume both data and backup mounts. These are v1.3.0 refactoring requirements, not guarantees of the current implementation.
+
+The module design follows SOLID at the configuration boundary:
+
+* **Single responsibility:** service modules own application configuration; capability modules own cross-cutting infrastructure.
+* **Open/closed composition:** hosts add or omit modules instead of editing a central list of all services.
+* **Interface segregation:** consumers receive focused options for the capabilities they use.
+* **Dependency inversion:** integrations depend on typed service/capability contracts rather than concrete application-module details.
+
+The synthetic second-host tests must verify that omitted services and capabilities produce no orphaned units, proxy routes, DNS records, backup jobs, or unused storage requirements.
 
 ## Networking
 
@@ -66,6 +85,8 @@ dnsmasq provides:
 * LAN DNS
 * local service records
 * service discovery through the configured domain
+
+The host declares the local DNS names through `server.network.localDnsNames`; dnsmasq maps those names to the host's configured LAN address. This keeps deployment-specific names out of the reusable dnsmasq module. The later service-endpoint work should allow these records to be derived from declared, enabled services rather than maintaining another independent service list.
 
 Internal service names resolve to the host on the local network, while Caddy handles the corresponding HTTP/TLS routing.
 
