@@ -11,6 +11,25 @@ with helpers;
   (assertEqual "host upstream DNS servers" [ "1.1.1.1" "8.8.8.8" ] config.server.network.dnsServers)
   (assertEqual "host DHCP range" "192.168.2.50,192.168.2.199,255.255.255.0,12h" config.server.network.dhcpRange)
   (assertEqual "host DHCP reservations" [ "b4:2e:99:fb:61:ae,192.168.2.100,nixos-desktop" ] config.server.network.dhcpHosts)
+  (assertEqual
+    "host local DNS names"
+    [
+      "jellyfin.alexpaquette.dev"
+      "seerr.alexpaquette.dev"
+      "immich.alexpaquette.dev"
+      "cloud.alexpaquette.dev"
+      "ntfy.alexpaquette.dev"
+      "radarr.alexpaquette.dev"
+      "sonarr.alexpaquette.dev"
+      "prowlarr.alexpaquette.dev"
+      "qbittorrent.alexpaquette.dev"
+      "cockpit.alexpaquette.dev"
+      "status.alexpaquette.dev"
+      "beszel.alexpaquette.dev"
+      "jenkins.alexpaquette.dev"
+      "homepage.alexpaquette.dev"
+    ]
+    config.server.network.localDnsNames)
   (assertEqual "host data root" "/mnt/myraid" config.server.storage.dataRoot)
   (assertEqual "host backup root" "/mnt/backup" config.server.storage.backupRoot)
   (assertEqual "host data device" "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55" config.server.storage.dataDevice)

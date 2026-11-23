@@ -1,23 +1,5 @@
 { config, helpers, ... }:
 
-let
-  localHostnames = [
-    "jellyfin.alexpaquette.dev"
-    "seerr.alexpaquette.dev"
-    "immich.alexpaquette.dev"
-    "cloud.alexpaquette.dev"
-    "ntfy.alexpaquette.dev"
-    "radarr.alexpaquette.dev"
-    "sonarr.alexpaquette.dev"
-    "prowlarr.alexpaquette.dev"
-    "qbittorrent.alexpaquette.dev"
-    "cockpit.alexpaquette.dev"
-    "status.alexpaquette.dev"
-    "beszel.alexpaquette.dev"
-    "jenkins.alexpaquette.dev"
-    "homepage.alexpaquette.dev"
-  ];
-in
 with helpers;
 
 [
@@ -73,6 +55,6 @@ with helpers;
     "dnsmasq local DNS entries"
     (map
       (hostname: "/${hostname}/${config.server.network.lanAddress}")
-      localHostnames)
+      config.server.network.localDnsNames)
     config.services.dnsmasq.settings.address)
 ]
