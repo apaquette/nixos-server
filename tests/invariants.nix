@@ -18,21 +18,19 @@
     config.systemd.services.qbittorrent.requires)
 
   # Backup failure notification handlers
-builtins.all
-  (
-    name:
-    builtins.elem
-      "homelab-backup-notify@%p.service"
-      config.systemd.services."restic-backups-${name}".onFailure
-  )
-  [
-    "nextcloud"
-    "immich"
-    "minecraft"
-    "jellyfin"
-    "sonarr"
-    "radarr"
-    "beszel"
-    "ntfy"
-  ]
+  (builtins.all
+    (name:
+      builtins.elem
+        "homelab-backup-notify@%p.service"
+        config.systemd.services."restic-backups-${name}".onFailure)
+    [
+      "nextcloud"
+      "immich"
+      "minecraft"
+      "jellyfin"
+      "sonarr"
+      "radarr"
+      "beszel"
+      "ntfy"
+    ])
 ]
