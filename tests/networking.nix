@@ -20,27 +20,27 @@ with helpers;
 
   (assertEqual
     "LAN interface MAC"
-    "2c:f0:5d:6e:6c:2d"
+    config.server.network.interfaceMacAddress
     config.systemd.network.links."10-lan".matchConfig.PermanentMACAddress)
 
   (assertEqual
     "LAN interface name"
-    "lan0"
+    config.server.network.interfaceName
     config.systemd.network.links."10-lan".linkConfig.Name)
 
   (assertContains
     "LAN static address"
-    "192.168.2.20/24"
+    config.server.network.ipv4Address
     config.systemd.network.networks."10-lan".address)
 
   (assertEqual
     "LAN gateway"
-    "192.168.2.1"
+    config.server.network.gateway
     (builtins.head config.systemd.network.networks."10-lan".routes).Gateway)
 
   (assertContains
     "LAN DNS servers"
-    "192.168.2.20"
+    config.server.network.lanAddress
     config.systemd.network.networks."10-lan".dns)
 
   (assertContains

@@ -1,5 +1,23 @@
 { config, helpers, ... }:
 
+let
+  localHostnames = [
+    "jellyfin.alexpaquette.dev"
+    "seerr.alexpaquette.dev"
+    "immich.alexpaquette.dev"
+    "cloud.alexpaquette.dev"
+    "ntfy.alexpaquette.dev"
+    "radarr.alexpaquette.dev"
+    "sonarr.alexpaquette.dev"
+    "prowlarr.alexpaquette.dev"
+    "qbittorrent.alexpaquette.dev"
+    "cockpit.alexpaquette.dev"
+    "status.alexpaquette.dev"
+    "beszel.alexpaquette.dev"
+    "jenkins.alexpaquette.dev"
+    "homepage.alexpaquette.dev"
+  ];
+in
 with helpers;
 
 [
@@ -10,30 +28,30 @@ with helpers;
 
   (assertEqual
     "dnsmasq interface"
-    [ "lan0" ]
+    [ config.server.network.interfaceName ]
     config.services.dnsmasq.settings.interface)
 
   (assertEqual
     "dnsmasq listen addresses"
-    [ "127.0.0.1" "192.168.2.20" ]
+    [ "127.0.0.1" config.server.network.lanAddress ]
     config.services.dnsmasq.settings.listen-address)
 
   (assertEqual
     "dnsmasq DHCP range"
-    [ "192.168.2.50,192.168.2.199,255.255.255.0,12h" ]
+    [ config.server.network.dhcpRange ]
     config.services.dnsmasq.settings.dhcp-range)
 
   (assertEqual
     "dnsmasq DHCP options"
     [
-      "option:router,192.168.2.1"
-      "option:dns-server,192.168.2.20"
+      "option:router,${config.server.network.gateway}"
+      "option:dns-server,${config.server.network.lanAddress}"
     ]
     config.services.dnsmasq.settings.dhcp-option)
 
   (assertEqual
     "dnsmasq upstream DNS"
-    [ "1.1.1.1" "8.8.8.8" ]
+    config.server.network.dnsServers
     config.services.dnsmasq.settings.server)
 
   (assertEqual
@@ -48,26 +66,13 @@ with helpers;
 
   (assertEqual
     "dnsmasq desktop reservation"
-    [ "b4:2e:99:fb:61:ae,192.168.2.100,nixos-desktop" ]
+    config.server.network.dhcpHosts
     config.services.dnsmasq.settings.dhcp-host)
 
   (assertEqual
     "dnsmasq local DNS entries"
-    [
-      "/jellyfin.alexpaquette.dev/192.168.2.20"
-      "/seerr.alexpaquette.dev/192.168.2.20"
-      "/immich.alexpaquette.dev/192.168.2.20"
-      "/cloud.alexpaquette.dev/192.168.2.20"
-      "/ntfy.alexpaquette.dev/192.168.2.20"
-      "/radarr.alexpaquette.dev/192.168.2.20"
-      "/sonarr.alexpaquette.dev/192.168.2.20"
-      "/prowlarr.alexpaquette.dev/192.168.2.20"
-      "/qbittorrent.alexpaquette.dev/192.168.2.20"
-      "/cockpit.alexpaquette.dev/192.168.2.20"
-      "/status.alexpaquette.dev/192.168.2.20"
-      "/beszel.alexpaquette.dev/192.168.2.20"
-      "/jenkins.alexpaquette.dev/192.168.2.20"
-      "/homepage.alexpaquette.dev/192.168.2.20"
-    ]
+    (map
+      (hostname: "/${hostname}/${config.server.network.lanAddress}")
+      localHostnames)
     config.services.dnsmasq.settings.address)
 ]
