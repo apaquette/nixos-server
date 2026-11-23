@@ -96,7 +96,7 @@ in
 
   (helpers.assertEqual
   "Nextcloud data directory"
-  "/mnt/myraid/Nextcloud"
+  "${config.server.storage.dataRoot}/Nextcloud"
   (if nativeEnabled
    then config.services.nextcloud.settings.datadirectory
    else null))
@@ -220,11 +220,11 @@ in
 
   (helpers.assertEqual
     "Nextcloud data ownership command"
-    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud /mnt/myraid/Nextcloud"
+    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${config.server.storage.dataRoot}/Nextcloud"
     config.systemd.services.nextcloud-data-ownership.serviceConfig.ExecStart)
 
   (helpers.assertContains
-    "Nextcloud data ownership requires RAID mount"
-    "mnt-myraid.mount"
-    config.systemd.services.nextcloud-data-ownership.requires)
+    "Nextcloud data ownership requires its host data directory mount"
+    config.services.nextcloud.settings.datadirectory
+    config.systemd.services.nextcloud-data-ownership.unitConfig.RequiresMountsFor)
 ]

@@ -20,21 +20,21 @@ case "$MD_STATE" in
 esac
 
 # Both filesystems must be mounted.
-mountpoint -q /mnt/myraid ||
-    fail "/mnt/myraid is not mounted"
+mountpoint -q @DATA_ROOT@ ||
+    fail "@DATA_ROOT@ is not mounted"
 
-mountpoint -q /mnt/backup ||
-    fail "/mnt/backup is not mounted"
+mountpoint -q @BACKUP_ROOT@ ||
+    fail "@BACKUP_ROOT@ is not mounted"
 
 # Verify both mounts are writable without creating persistent files.
-if ! touch /mnt/myraid/.homelab-storage-health-test 2>/dev/null; then
-    fail "/mnt/myraid is not writable"
+if ! touch @DATA_ROOT@/.homelab-storage-health-test 2>/dev/null; then
+    fail "@DATA_ROOT@ is not writable"
 fi
-rm -f /mnt/myraid/.homelab-storage-health-test
+rm -f @DATA_ROOT@/.homelab-storage-health-test
 
-if ! touch /mnt/backup/.homelab-storage-health-test 2>/dev/null; then
-    fail "/mnt/backup is not writable"
+if ! touch @BACKUP_ROOT@/.homelab-storage-health-test 2>/dev/null; then
+    fail "@BACKUP_ROOT@ is not writable"
 fi
-rm -f /mnt/backup/.homelab-storage-health-test
+rm -f @BACKUP_ROOT@/.homelab-storage-health-test
 
 exit 0
