@@ -7,6 +7,7 @@ let
     { name = "networking"; result = import ./networking.nix { inherit config helpers; }; }
     { name = "server-options"; result = import ./server-options.nix { inherit config helpers; }; }
     { name = "storage"; result = import ./storage.nix { inherit config helpers; }; }
+    { name = "storage-volumes"; result = import ./storage-volumes.nix { inherit config helpers; }; }
     { name = "users"; result = import ./users.nix { inherit config helpers; }; }
     { name = "caddy"; result = import ./caddy.nix { inherit config helpers; }; }
     { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config helpers; }; }
