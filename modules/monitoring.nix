@@ -1,4 +1,4 @@
-{ pkgs,... }:
+{ config, pkgs, ... }:
 let
 service-paths = with pkgs; [
   bash
@@ -62,8 +62,8 @@ in
     ];
 
     unitConfig.RequiresMountsFor = [
-      "/mnt/myraid"
-      "/mnt/backup"
+      config.server.storage.dataRoot
+      config.server.storage.backupRoot
     ];
 
     serviceConfig = {

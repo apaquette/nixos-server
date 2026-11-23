@@ -13,13 +13,13 @@ ARRAY /dev/md/0 metadata=1.2 UUID=06feb5d7:8068ed2e:0d93f17f:649590b9
 "
     config.boot.swraid.mdadmConf)
   (assertEqual
-    "myraid filesystem UUID"
-    "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55"
-    config.fileSystems."/mnt/myraid".device)
+    "data filesystem device"
+    config.server.storage.dataDevice
+    config.fileSystems.${config.server.storage.dataRoot}.device)
   (assertEqual
-    "backup filesystem UUID"
-    "/dev/disk/by-uuid/2f26abd3-1603-4c8d-890c-a8a8aea9c5f1"
-    config.fileSystems."/mnt/backup".device)
-  (assertContains "myraid mount options" "nofail" config.fileSystems."/mnt/myraid".options)
-  (assertContains "backup mount options" "nofail" config.fileSystems."/mnt/backup".options)
+    "backup filesystem device"
+    config.server.storage.backupDevice
+    config.fileSystems.${config.server.storage.backupRoot}.device)
+  (assertContains "myraid mount options" "nofail" config.fileSystems.${config.server.storage.dataRoot}.options)
+  (assertContains "backup mount options" "nofail" config.fileSystems.${config.server.storage.backupRoot}.options)
 ]

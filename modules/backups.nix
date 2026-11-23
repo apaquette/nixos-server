@@ -2,7 +2,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  repository = "/mnt/backup/Restic/homelab";
+  repository = "${config.server.storage.backupRoot}/Restic/${config.networking.hostName}";
   passwordFile = config.sops.secrets."restic-repository-password".path;
 
   r2AccountId = "08a653e653431727545c1cbbc844423d";
@@ -449,17 +449,12 @@ let
 
         after = [
           "network-online.target"
-          "mnt-backup.mount"
           "restic-backups-maintenance.service"
           "restic-backups-check.service"
         ];
 
         wants = [
           "network-online.target"
-        ];
-
-        requires = [
-          "mnt-backup.mount"
         ];
 
         onFailure = [

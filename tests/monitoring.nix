@@ -16,8 +16,8 @@ with helpers;
   (assertEqual
     "storage health required mounts"
     [
-      "/mnt/myraid"
-      "/mnt/backup"
+      config.server.storage.dataRoot
+      config.server.storage.backupRoot
     ]
     config.systemd.services.homelab-storage-health.unitConfig.RequiresMountsFor)
 

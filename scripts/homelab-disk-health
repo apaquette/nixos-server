@@ -90,5 +90,5 @@ check_filesystem() {
 }
 
 check_filesystem "/"
-check_filesystem "/mnt/myraid"
-check_filesystem "/mnt/backup"
+check_filesystem "@DATA_ROOT@"
+check_filesystem "@BACKUP_ROOT@"

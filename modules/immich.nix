@@ -9,7 +9,7 @@
     host = "127.0.0.1";
     port = 2283;
 
-    mediaLocation = "/mnt/myraid/Immich/library";
+    mediaLocation = "${config.server.storage.dataRoot}/Immich/library";
 
     machine-learning.enable = true;
     accelerationDevices = [ ];
@@ -30,8 +30,7 @@
     settings = null;
   };
 
-  systemd.services.immich-server = {
-    after = [ "mnt-myraid.mount" ];
-    requires = [ "mnt-myraid.mount" ];
-  };
+  systemd.services.immich-server.unitConfig.RequiresMountsFor = [
+    config.services.immich.mediaLocation
+  ];
 }

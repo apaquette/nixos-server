@@ -2,6 +2,7 @@
 
 let
   backups = config.services.restic.backups;
+  repository = "${config.server.storage.backupRoot}/Restic/${config.networking.hostName}";
 
   backup = name: backups.${name};
 
@@ -35,7 +36,7 @@ let
   assertRepository = name:
     helpers.assertEqual
       "Restic repository for ${name}"
-      "/mnt/backup/Restic/homelab"
+      repository
       (backup name).repository;
 
   assertPasswordFile = name:
@@ -82,7 +83,7 @@ let
   assertRepositoryMount = name: {
     assertion =
       builtins.elem
-        "/mnt/backup/Restic/homelab"
+        repository
         config.systemd.services."restic-backups-${name}".unitConfig.RequiresMountsFor;
     message =
       "Restic backup service '${name}' must require the local backup repository mount.";
@@ -520,7 +521,7 @@ lib.flatten [
   {
     assertion =
       !(builtins.elem
-        "/mnt/myraid/Videos"
+        "${config.server.storage.dataRoot}/Videos"
         (backup "jellyfin").paths);
     message =
       "Jellyfin backup must not include the media library.";
@@ -818,12 +819,7 @@ lib.flatten [
 
   (helpers.assertContains
     "Off-site copy requires local backup storage"
-    "mnt-backup.mount"
-    (offsiteCopy.requires or []))
-
-  (helpers.assertContains
-    "Off-site copy requires local repository mount"
-    "/mnt/backup/Restic/homelab"
+    repository
     (offsiteCopy.unitConfig.RequiresMountsFor or []))
 
   (helpers.assertContains
@@ -879,7 +875,7 @@ lib.flatten [
 
   (helpers.assertEqual
     "Off-site source repository"
-    "/mnt/backup/Restic/homelab"
+    repository
     offsiteCopy.environment.RESTIC_FROM_REPOSITORY)
 
   (helpers.assertEqual
