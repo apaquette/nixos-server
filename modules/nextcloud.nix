@@ -46,7 +46,7 @@ in
 
     package = nextcloud35;
 
-    hostName = "cloud.alexpaquette.dev";
+    hostName = config.server.services.cloud.hostname;
 
     home = "/var/lib/nextcloud";
     datadir = "/var/lib/nextcloud";
@@ -71,7 +71,7 @@ in
       datadirectory = "${applicationDataRoot}/Nextcloud";
 
       trusted_domains = [
-        "cloud.alexpaquette.dev"
+        config.server.services.cloud.hostname
       ];
 
       trusted_proxies = [
@@ -79,7 +79,7 @@ in
       ];
 
       overwriteprotocol = "https";
-      "overwrite.cli.url" = "https://cloud.alexpaquette.dev";
+      "overwrite.cli.url" = "https://${config.server.services.cloud.hostname}";
     };
 
     configureRedis = true;
@@ -112,6 +112,8 @@ in
       }
     ];
   };
+
+  server.services.cloud.httpUpstream = lib.mkDefault "127.0.0.1:8081";
 
   services.postgresql = {
     enable = true;

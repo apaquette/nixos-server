@@ -1,4 +1,4 @@
-{ config, unstable, ... }:
+{ config, lib, unstable, ... }:
 
 let
   storage = import ./lib/storage.nix { inherit config; };
@@ -33,6 +33,9 @@ in
 
     settings = null;
   };
+
+  server.services.immich.httpUpstream = lib.mkDefault
+    "${config.services.immich.host}:${toString config.services.immich.port}";
 
   systemd.services.immich-server.unitConfig.RequiresMountsFor = [
     config.services.immich.mediaLocation
