@@ -60,7 +60,7 @@ Hosts are composition roots. Each host selects its services and operational capa
 
 Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage health checks must be independently selectable where practical. They must not assume that every application is installed. When such an integration is selected, it should consume a declared service interface or capability rather than directly coupling itself to a particular application's implementation.
 
-Storage roles are independent. A host may provide application-data storage without local backup storage, or omit host-provided data storage if its selected services do not need it. The backup root and backup device are required only when the host selects modules that use local backup storage. RAID support is also optional.
+Storage resources and logical roles are independent. A host may provide an `applicationData` role without a `localBackup` role, or omit host-provided data storage if its selected services do not need it. A backup volume and role are required only when the host selects modules that use local backup storage. RAID support is also optional.
 
 The current configuration does not fully meet this target: the backup module aggregates jobs for several applications, storage/monitoring modules assume both data and backup mounts, and internal Caddy virtual hosts do not yet have explicit LAN source restrictions. These are v1.3.0 refactoring requirements, not guarantees of the current implementation.
 
@@ -101,6 +101,8 @@ The target design distinguishes three client access policies:
 * **loopback** — accessible only to processes on the same host, with no LAN or public ingress.
 
 These policies are independent of the backend listener. For example, Jellyfin can listen on loopback while Caddy provides public access; Homepage can listen on loopback while Caddy exposes it only to LAN clients. Direct TCP/UDP services such as Minecraft declare their own ingress protocol and port rather than using Caddy.
+
+The homelab's intended assignments are Jellyfin (`public` through Caddy), Minecraft (`public` through direct TCP ingress), Beszel (`lan` through Caddy), and Homepage (`lan` through Caddy). These are target policies; the current configuration does not yet enforce all of them. Other services must be classified explicitly as part of the service inventory.
 
 Caddy consumes HTTP(S) service contracts and applies the declared access policy. The firewall consumes the ingress requirements and opens only the necessary ports and sources. Direct service ingress is handled by the relevant service/network integration.
 

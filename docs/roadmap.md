@@ -274,7 +274,7 @@ The intended boundaries are:
 * Cross-cutting capabilities such as reverse proxying, local DNS, backups, monitoring, and storage health checks remain independently selectable where practical.
 * Integration modules must not assume that every known application exists. They should consume declared service interfaces or capabilities and create configuration only for those that are present.
 * Dependencies must be explicit. A selected module may require a storage root, database, network interface, secret, or another service, but it must not impose that requirement on hosts that do not select the module.
-* Distinct storage roles must remain independent. Application-data storage and local backup storage are separate capabilities; a host without a backup disk must be able to omit local backup storage and backup services without supplying placeholder paths or devices.
+* Storage resources and logical storage roles must remain separate. A host without local backup storage must be able to omit the `localBackup` role and backup modules without supplying placeholder volumes or mount paths.
 * Generic backup repository and maintenance logic should be separated from application-specific backup procedures. A service's backup integration should only be present when both the service and the backup capability are selected.
 * Optional RAID, external disks, reverse proxying, and other hardware or operational features must not be unconditional assumptions in general-purpose modules.
 
@@ -293,6 +293,17 @@ Each network-accessible service should declare an access policy with three suppo
 * **`loopback`:** host-local only. The service must not receive a LAN or public ingress route, and its network listener should remain bound to loopback where the application supports it.
 
 Access policy is separate from the service's backend bind address and from its ingress mechanism. For example, a Jellyfin process may listen on loopback while Caddy exposes it publicly. A LAN-only Homepage instance may also listen on loopback while Caddy proxies it to trusted LAN clients.
+
+The homelab's intended exposure assignments include:
+
+| Service | Access policy | Ingress |
+|---|---|---|
+| Jellyfin | `public` | HTTPS through Caddy |
+| Minecraft | `public` | Direct TCP on its configured game port |
+| Beszel | `lan` | HTTPS through Caddy, restricted to trusted LAN sources |
+| Homepage | `lan` | HTTPS through Caddy, restricted to trusted LAN sources |
+
+These examples describe the target policy, not a claim that the existing configuration already enforces it. Other services must be classified as part of the service inventory rather than inheriting exposure merely because a Caddy virtual host currently exists.
 
 Service modules should declare their endpoint, access policy, and the kind of ingress they require. Consumers should use focused service contracts:
 
