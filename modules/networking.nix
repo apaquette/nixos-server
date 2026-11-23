@@ -1,8 +1,5 @@
-{ config, ... }:
+{ ... }:
 
-let
-  network = config.server.network;
-in
 {
   networking.networkmanager.enable = false;
   networking.useNetworkd = true;
@@ -11,20 +8,46 @@ in
   systemd.network.enable = true;
 
   systemd.network.links."10-lan" = {
-    matchConfig.PermanentMACAddress = network.interfaceMacAddress;
-    linkConfig.Name = network.interfaceName;
+    matchConfig.PermanentMACAddress = "2c:f0:5d:6e:6c:2d";
+    linkConfig.Name = "lan0";
   };
 
   systemd.network.networks."10-lan" = {
-    matchConfig.Name = network.interfaceName;
-    address = [ network.ipv4Address ];
-    routes = [ { Gateway = network.gateway; } ];
-    dns = [ network.lanAddress ] ++ network.dnsServers;
+    matchConfig.Name = "lan0";
+
+    address = [
+      "192.168.2.20/24"
+    ];
+
+    routes = [
+      {
+        Gateway = "192.168.2.1";
+      }
+    ];
+
+    dns = [
+      "192.168.2.20"
+      "1.1.1.1"
+      "8.8.8.8"
+    ];
+
     linkConfig.RequiredForOnline = "routable";
   };
 
-  networking.firewall.interfaces.${network.interfaceName} = {
-    allowedTCPPorts = [ 53 80 443 4300 ];
-    allowedUDPPorts = [ 53 67 ];
+  networking.firewall = {
+    interfaces.lan0 = {
+      allowedTCPPorts = [
+        53
+        80
+        443
+        4300
+      ];
+
+      allowedUDPPorts = [
+        53
+        67
+      ];
+    };
   };
 }
+

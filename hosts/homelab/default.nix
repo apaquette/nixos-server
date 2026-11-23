@@ -16,10 +16,9 @@
   imports = [
     ./hardware-configuration.nix
     ./users.nix
-    ./network.nix
-    ./storage.nix
-    ../../modules/server-options.nix
+    ../../modules/networking.nix
     ../../modules/ddclient.nix
+    ../../modules/storage.nix
     ../../modules/caddy.nix
     ../../modules/dnsmasq.nix
     ../../modules/jellyfin.nix

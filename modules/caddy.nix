@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   services.caddy = {
@@ -10,7 +10,7 @@
       '';
 
       "jellyfin.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 192.168.2.20:8096
+        reverse_proxy ${config.server.network.lanAddress}:8096
       '';
 
       "seerr.alexpaquette.dev".extraConfig = ''
@@ -42,7 +42,7 @@
 
       "qbittorrent.alexpaquette.dev".extraConfig = ''
         tls internal
-        reverse_proxy 192.168.2.20:8080
+        reverse_proxy ${config.server.network.lanAddress}:8080
       '';
 
       "cockpit.alexpaquette.dev".extraConfig = ''

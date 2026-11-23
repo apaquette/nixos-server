@@ -65,14 +65,14 @@ in
     https = true;
 
     settings = {
-      datadirectory = "/mnt/myraid/Nextcloud";
+      datadirectory = "${config.server.storage.dataRoot}/Nextcloud";
 
       trusted_domains = [
         "cloud.alexpaquette.dev"
       ];
 
       trusted_proxies = [
-        "192.168.2.20"
+        config.server.network.lanAddress
       ];
 
       overwriteprotocol = "https";
@@ -128,8 +128,9 @@ in
   systemd.services.nextcloud-data-ownership = {
     description = "Normalize Nextcloud data directory ownership";
 
-    after = [ "mnt-myraid.mount" ];
-    requires = [ "mnt-myraid.mount" ];
+    unitConfig.RequiresMountsFor = [
+      config.services.nextcloud.settings.datadirectory
+    ];
 
     before = [
       "nextcloud-setup.service"
@@ -144,7 +145,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart =
-        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud /mnt/myraid/Nextcloud";
+        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${config.server.storage.dataRoot}/Nextcloud";
       RemainAfterExit = true;
     };
   };
