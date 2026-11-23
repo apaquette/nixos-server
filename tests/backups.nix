@@ -285,7 +285,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "immich-server.service"
         (backup "immich").backupPrepareCommand;
     message =
@@ -294,7 +294,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "immich-server.service"
         (backup "immich").backupCleanupCommand;
     message =
@@ -303,7 +303,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "pg_dump"
         (backup "immich").backupPrepareCommand;
     message =
@@ -312,7 +312,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "--format=custom"
         (backup "immich").backupPrepareCommand;
     message =
@@ -321,7 +321,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "pg_restore --list"
         (backup "immich").backupPrepareCommand;
     message =
@@ -349,7 +349,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "nextcloud-occ status --output=json"
         nextcloudPrepare;
     message =
@@ -358,7 +358,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "maintenance:mode --on"
         nextcloudPrepare;
     message =
@@ -367,7 +367,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "maintenance-enabled-by-backup"
         nextcloudPrepare;
     message =
@@ -376,7 +376,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "touch"
         nextcloudPrepare;
     message =
@@ -385,7 +385,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "nextcloud-cron.timer"
         nextcloudPrepare;
     message =
@@ -394,7 +394,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "nextcloud-cron.service"
         nextcloudPrepare;
     message =
@@ -403,7 +403,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "pg_dump"
         nextcloudPrepare;
     message =
@@ -412,7 +412,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "--format=custom"
         nextcloudPrepare;
     message =
@@ -421,7 +421,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "pg_restore --list"
         nextcloudPrepare;
     message =
@@ -430,7 +430,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "maintenance-enabled-by-backup"
         nextcloudCleanup;
     message =
@@ -439,7 +439,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "maintenance:mode --off"
         nextcloudCleanup;
     message =
@@ -448,7 +448,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "nextcloud-cron.service"
         nextcloudCleanup;
     message =
@@ -457,7 +457,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "nextcloud-cron.timer"
         nextcloudCleanup;
     message =
@@ -466,7 +466,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "rm -f"
         nextcloudCleanup;
     message =
@@ -484,7 +484,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "minecraft-server.service"
         (backup "minecraft").backupPrepareCommand;
     message =
@@ -493,7 +493,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "minecraft-server.service"
         (backup "minecraft").backupCleanupCommand;
     message =
@@ -511,7 +511,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         config.services.jellyfin.logDir
         (lib.concatStringsSep " " (backup "jellyfin").exclude);
     message =
@@ -529,7 +529,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "jellyfin.service"
         (backup "jellyfin").backupPrepareCommand;
     message =
@@ -538,7 +538,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "jellyfin.service"
         (backup "jellyfin").backupCleanupCommand;
     message =
@@ -556,7 +556,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "sonarr.service"
         (backup "sonarr").backupPrepareCommand;
     message =
@@ -565,7 +565,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "sonarr.service"
         (backup "sonarr").backupCleanupCommand;
     message =
@@ -583,7 +583,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "radarr.service"
         (backup "radarr").backupPrepareCommand;
     message =
@@ -592,7 +592,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "radarr.service"
         (backup "radarr").backupCleanupCommand;
     message =
@@ -610,7 +610,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "beszel-hub.service"
         (backup "beszel").backupPrepareCommand;
     message =
@@ -619,7 +619,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "beszel-hub.service"
         (backup "beszel").backupCleanupCommand;
     message =
@@ -637,7 +637,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "ntfy-sh.service"
         (backup "ntfy").backupPrepareCommand;
     message =
@@ -646,7 +646,7 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "ntfy-sh.service"
         (backup "ntfy").backupCleanupCommand;
     message =
@@ -859,21 +859,21 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix "--from-repo" offsiteCopyScript;
+      lib.strings.hasInfix "--from-repo" offsiteCopyScript;
     message =
       "Off-site copy must specify the source repository.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--from-password-file" offsiteCopyScript;
+      lib.strings.hasInfix "--from-password-file" offsiteCopyScript;
     message =
       "Off-site copy must use the source repository password.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--password-file" offsiteCopyScript;
+      lib.strings.hasInfix "--password-file" offsiteCopyScript;
     message =
       "Off-site copy must use the destination repository password.";
   }
@@ -986,35 +986,35 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix "restic restore latest" restoreTestScript;
+      lib.strings.hasInfix "restic restore latest" restoreTestScript;
     message =
       "Off-site restore test must restore the latest selected snapshot.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--tag ntfy" restoreTestScript;
+      lib.strings.hasInfix "--tag ntfy" restoreTestScript;
     message =
       "Off-site restore test must select an ntfy snapshot.";
   }
 
   {
     assertion =
-      builtins.hasInfix "auth.db" restoreTestScript;
+      lib.strings.hasInfix "auth.db" restoreTestScript;
     message =
       "Off-site restore test must validate the restored auth.db file.";
   }
 
   {
     assertion =
-      builtins.hasInfix "mktemp -d" restoreTestScript;
+      lib.strings.hasInfix "mktemp -d" restoreTestScript;
     message =
       "Off-site restore test must use an isolated temporary directory.";
   }
 
   {
     assertion =
-      builtins.hasInfix "trap " restoreTestScript;
+      lib.strings.hasInfix "trap " restoreTestScript;
     message =
       "Off-site restore test must clean up its temporary directory.";
   }
@@ -1023,35 +1023,35 @@ lib.flatten [
 
   {
     assertion =
-      builtins.hasInfix "--group-by host,tags" offsiteCopyScript;
+      lib.strings.hasInfix "--group-by host,tags" offsiteCopyScript;
     message =
       "Off-site copy must use host and tag retention grouping.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--keep-daily 14" offsiteCopyScript;
+      lib.strings.hasInfix "--keep-daily 14" offsiteCopyScript;
     message =
       "Off-site copy must retain 14 daily snapshots.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--keep-weekly 8" offsiteCopyScript;
+      lib.strings.hasInfix "--keep-weekly 8" offsiteCopyScript;
     message =
       "Off-site copy must retain 8 weekly snapshots.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--keep-monthly 6" offsiteCopyScript;
+      lib.strings.hasInfix "--keep-monthly 6" offsiteCopyScript;
     message =
       "Off-site copy must retain 6 monthly snapshots.";
   }
 
   {
     assertion =
-      builtins.hasInfix "--prune" offsiteCopyScript;
+      lib.strings.hasInfix "--prune" offsiteCopyScript;
     message =
       "Off-site copy must prune data removed by retention.";
   }
@@ -1083,7 +1083,7 @@ lib.flatten [
 
    {
     assertion =
-      builtins.hasInfix
+      lib.strings.hasInfix
         "--read-data"
         (offsiteFullCheckServiceConfig.ExecStart or "");
     message =
