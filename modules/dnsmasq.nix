@@ -2,11 +2,16 @@
 
 let
   network = config.server.network;
-  httpServices = lib.filterAttrs
+
+  publishedServices = lib.filterAttrs
     (_: service:
-      service.httpUpstream != null
-      && service.hostname != null
-      && service.exposure != "loopback")
+      service.hostname != null
+      && service.exposure != "loopback"
+      && (
+        service.httpUpstream != null
+        || service.tcpPorts != [ ]
+        || service.udpPorts != [ ]
+      ))
     config.server.services;
 in
 {
@@ -25,7 +30,7 @@ in
       log-dhcp = true;
       address = map
         (service: "/${service.hostname}/${network.lanAddress}")
-        (builtins.attrValues httpServices);
+        (builtins.attrValues publishedServices);
       server = network.dnsServers;
       no-resolv = true;
       cache-size = 1000;

@@ -57,7 +57,7 @@ in
   server.services.sonarr.httpUpstream = lib.mkDefault "127.0.0.1:8989";
   server.services.prowlarr.httpUpstream = lib.mkDefault "127.0.0.1:9696";
   server.services.qbittorrent.httpUpstream = lib.mkDefault
-    "${config.server.network.lanAddress}:${toString config.services.qbittorrent.webuiPort}";
+    "127.0.0.1:${toString config.services.qbittorrent.webuiPort}";
 
   systemd.tmpfiles.rules = [
     "d /var/lib/radarr 0750 radarr radarr -"

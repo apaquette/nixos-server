@@ -22,7 +22,7 @@ in
   };
 
   server.services.jellyfin.httpUpstream = lib.mkDefault
-    "${config.server.network.lanAddress}:8096";
+    "127.0.0.1:8096";
 
   systemd.services.jellyfin = {
     unitConfig.RequiresMountsFor = [ applicationDataRoot ];

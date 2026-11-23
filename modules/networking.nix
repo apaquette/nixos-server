@@ -12,6 +12,17 @@ let
   lanTcpPorts = lib.unique (lib.concatMap (service: service.tcpPorts) (builtins.attrValues lanServices));
   lanUdpPorts = lib.unique (lib.concatMap (service: service.udpPorts) (builtins.attrValues lanServices));
 
+  dnsmasqEnabled = config.services.dnsmasq.enable;
+  caddyIngressEnabled =
+    config.services.caddy.enable
+    && config.services.caddy.virtualHosts != { };
+
+  baseTcpPorts =
+    lib.optionals dnsmasqEnabled [ 53 ]
+    ++ lib.optionals caddyIngressEnabled [ 80 443 ];
+
+  baseUdpPorts = lib.optionals dnsmasqEnabled [ 53 67 ];
+
   trustedIPv4 = lib.filter (cidr: !(lib.hasInfix ":" cidr)) network.trustedNetworks;
   trustedIPv6 = lib.filter (cidr: lib.hasInfix ":" cidr) network.trustedNetworks;
 
@@ -64,8 +75,8 @@ in
   };
 
   networking.firewall.interfaces.${network.interfaceName} = {
-    allowedTCPPorts = [ 53 80 443 ] ++ publicTcpPorts;
-    allowedUDPPorts = [ 53 67 ] ++ publicUdpPorts;
+    allowedTCPPorts = lib.unique (baseTcpPorts ++ publicTcpPorts);
+    allowedUDPPorts = lib.unique (baseUdpPorts ++ publicUdpPorts);
   };
 
   networking.nftables.enable = lanInputRules != [ ];

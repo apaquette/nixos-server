@@ -28,7 +28,7 @@ in
     dataDir = "/var/lib/beszel-hub";
 
     environment = {
-      APP_URL = "https://beszel.alexpaquette.dev";
+      APP_URL = "https://${config.server.services.beszel.hostname}";
     };
   };
 
