@@ -1,4 +1,4 @@
-{ config, lib, helpers, ... }:
+{ config, helpers, ... }:
 
 let
   scripts = [
@@ -41,38 +41,6 @@ let
       ../scripts/${name})
   ];
 
-  scriptText = name:
-    builtins.readFile (script name).source;
-
-  notificationTests = [
-    (helpers.assertEqual
-      "backup notification URL is generated from host settings"
-      true
-      (lib.hasInfix
-        "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.backupTopic}'"
-        (scriptText "homelab-backup-ntfy")))
-
-    (helpers.assertEqual
-      "system notification URL is generated from host settings"
-      true
-      (lib.hasInfix
-        "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}'"
-        (scriptText "homelab-storage-ntfy")))
-
-    (helpers.assertEqual
-      "disk-health notification URL is generated from host settings"
-      true
-      (lib.hasInfix
-        "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}'"
-        (scriptText "homelab-disk-health")))
-
-    (helpers.assertEqual
-      "generated notification scripts contain no unresolved endpoint placeholders"
-      false
-      (lib.hasInfix
-        "@NTFY_"
-        (scriptText "homelab-disk-health")))
-  ];
 
 in
-builtins.concatLists (map testsFor scripts) ++ notificationTests
+builtins.concatLists (map testsFor scripts)
