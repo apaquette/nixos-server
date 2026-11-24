@@ -1,9 +1,9 @@
 { config, ... }:
 
 {
-  sops.defaultSopsFile = ../secrets/homelab.yaml;
+  sops.defaultSopsFile = config.server.secrets.sopsFile;
 
-  sops.age.keyFile = "/var/lib/sops-nix/key.txt";
+  sops.age.keyFile = config.server.secrets.ageKeyFile;
 
   sops.secrets."namecheap-ddns-password" = {
     key = "namecheap/ddns_password";

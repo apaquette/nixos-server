@@ -1,7 +1,7 @@
 #!/run/current-system/sw/bin/bash
 set -euo pipefail
 
-NTFY_URL="https://ntfy.alexpaquette.dev/homelab-backups"
+NTFY_URL=@NTFY_BACKUP_URL@
 NTFY_TOKEN_FILE="/etc/smartd-ntfy-token"
 
 UNIT="${1:-unknown.service}"

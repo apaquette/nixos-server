@@ -5,13 +5,18 @@ with helpers;
 [
   (assertEqual
     "SOPS default file"
-    ../secrets/homelab.yaml
+    config.server.secrets.sopsFile
     config.sops.defaultSopsFile)
 
   (assertEqual
     "SOPS age key file"
-    "/var/lib/sops-nix/key.txt"
+    config.server.secrets.ageKeyFile
     config.sops.age.keyFile)
+
+  (assertEqual
+    "Host SOPS file is the configured decryption source"
+    "homelab.yaml"
+    (builtins.baseNameOf (toString config.sops.defaultSopsFile)))
 
   (assertEqual
     "Nextcloud SOPS key"

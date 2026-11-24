@@ -12,4 +12,28 @@ with helpers;
   (assertEqual "host DHCP range" "192.168.2.50,192.168.2.199,255.255.255.0,12h" config.server.network.dhcpRange)
   (assertEqual "host DHCP reservations" [ "b4:2e:99:fb:61:ae,192.168.2.100,nixos-desktop" ] config.server.network.dhcpHosts)
   (assertEqual "host RAID device" "/dev/md0" config.server.storage.raidDevice)
+  (assertEqual
+    "host notification endpoint"
+    "https://ntfy.alexpaquette.dev"
+    config.server.notifications.ntfy.baseUrl)
+  (assertEqual
+    "host system notification topic"
+    "homelab-system"
+    config.server.notifications.ntfy.systemTopic)
+  (assertEqual
+    "host backup notification topic"
+    "homelab-backups"
+    config.server.notifications.ntfy.backupTopic)
+  (assertEqual
+    "host remote backup repository"
+    "s3:https://08a653e653431727545c1cbbc844423d.r2.cloudflarestorage.com/homelab-restic/homelab"
+    config.server.backups.remoteRepository)
+  (assertEqual
+    "host SOPS age identity path"
+    "/var/lib/sops-nix/key.txt"
+    config.server.secrets.ageKeyFile)
+  (assertEqual
+    "host SOPS encrypted file"
+    "homelab.yaml"
+    (builtins.baseNameOf (toString config.server.secrets.sopsFile)))
 ]

@@ -5,11 +5,20 @@ pkgs.testers.nixosTest {
 
   nodes.machine = {
     imports = [
+      ../modules/server-options.nix
       ../modules/scripts.nix
       ../modules/monitoring.nix
     ];
 
     networking.hostName = "homelab-test";
+
+    server.notifications.ntfy = {
+      baseUrl = "https://notifications.example.test";
+      systemTopic = "test-system";
+      backupTopic = "test-backup";
+    };
+
+    server.storage.raidDevice = null;
 
     # Use the VM's normal test networking rather than the production
     # homelab interface configuration.

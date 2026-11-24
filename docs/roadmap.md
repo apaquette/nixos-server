@@ -280,7 +280,7 @@ The intended boundaries are:
 
 This applies the relevant SOLID principles at the module boundary: single responsibility for service and capability modules, open/closed composition through adding or omitting modules rather than editing central service lists, focused interfaces for consumers, and dependency inversion through typed service/capability contracts instead of direct references to concrete application modules.
 
-The current configuration has known coupling to remove during v1.3.0: `modules/backups.nix` aggregates backup jobs for multiple applications, while storage and monitoring modules assume both data and backup filesystems. The refactor must remove these assumptions rather than merely making the host values configurable.
+The generic volume and optional-role interfaces are implemented, so storage and monitoring consumers no longer require both application-data and local-backup volumes by default. One known boundary remains: `modules/backups.nix` still groups several application-specific backup jobs in one capability module. That is a candidate for a later service-owned backup integration refactor; it should not be conflated with the host network, storage, or service-exposure interfaces.
 
 ### Service exposure and ingress policy
 
@@ -303,7 +303,7 @@ The homelab's intended exposure assignments include:
 | Beszel | `lan` | HTTPS through Caddy, restricted to trusted LAN sources |
 | Homepage | `lan` | HTTPS through Caddy, restricted to trusted LAN sources |
 
-These examples describe the target policy, not a claim that the existing configuration already enforces it. Other services must be classified as part of the service inventory rather than inheriting exposure merely because a Caddy virtual host currently exists.
+The homelab declares these policies in its host service inventory. Other imported services are classified there rather than inheriting exposure merely because a Caddy virtual host exists.
 
 Service modules should declare their endpoint, access policy, and the kind of ingress they require. Consumers should use focused service contracts:
 
@@ -314,7 +314,7 @@ Service modules should declare their endpoint, access policy, and the kind of in
 
 DNS publication is a separate concern. Public DNS, split-horizon/local DNS overrides, and access control must not be treated as interchangeable. A public service may also have a local DNS override that resolves to the LAN address for local clients. A private DNS record does not enforce access restrictions, and the existence of a public DNS record does not itself grant network access.
 
-The current Caddy configuration uses `tls internal` for several internal virtual hosts, but this is not an access-control mechanism. The target architecture must add explicit source restrictions or an equivalent ingress policy before treating those hosts as LAN-only. The current firewall and router configuration must be considered when validating actual reachability; host configuration alone cannot describe every external NAT or port-forwarding rule.
+LAN-only Caddy routes combine `tls internal` with an explicit remote-source matcher that returns HTTP 403 to clients outside configured trusted networks. LAN-only direct TCP/UDP ingress is restricted by nftables source rules. Loopback services receive no external ingress. Actual public reachability still depends on router/NAT forwarding outside this repository.
 
 Tests must verify that:
 
@@ -765,10 +765,11 @@ The roadmap is intentionally ordered by operational and architectural value:
 |---|---|---|
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
 | **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
-| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | In progress |\n| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
+| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | In progress |
 | **v1.4.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
 The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-The next release, v1.2.0, adds Namecheap Dynamic DNS to keep the homelab's public IPv4 records up to date. The next engineering milestone is v1.3.0: make the existing infrastructure reusable across multiple hosts, establish multi-host configuration tests, and strengthen CI and deployment validation before introducing distributed infrastructure.
+v1.2.0 is complete. v1.3.0 is in progress: the typed network, storage, service-exposure, secrets, notification, and remote-backup interfaces are implemented in the current architecture work. The remaining phases are to add a synthetic second-host regression configuration, integrate VM tests into CI, validate both host builds, and formalize deployment validation and release.
