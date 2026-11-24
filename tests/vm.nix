@@ -6,6 +6,7 @@ pkgs.testers.nixosTest {
   nodes.machine = {
     imports = [
       ../modules/server-options.nix
+      ../modules/storage.nix
       ../modules/scripts.nix
       ../modules/monitoring.nix
     ];
@@ -18,7 +19,17 @@ pkgs.testers.nixosTest {
       backupTopic = "test-backup";
     };
 
-    server.storage.raidDevice = null;
+    # Use a disposable tmpfs volume to exercise storage mount dependencies
+    # without attaching or modifying any physical test/production device.
+    server.storage = {
+      raidDevice = null;
+      volumes.vmTest = {
+        device = "tmpfs";
+        mountPoint = "/mnt/test-volume";
+        fsType = "tmpfs";
+        options = [ "mode=0755" ];
+      };
+    };
 
     # Use the VM's normal test networking rather than the production
     # homelab interface configuration.
@@ -57,5 +68,23 @@ pkgs.testers.nixosTest {
     # The timers should be active after reaching multi-user.target.
     machine.succeed("systemctl is-active homelab-disk-health.timer")
     machine.succeed("systemctl is-active homelab-storage-health.timer")
+
+    # Verify that the temporary storage volume is mounted and is a dependency
+    # of the storage-health service.
+    machine.wait_for_unit("mnt-test-volume.mount")
+    machine.succeed("findmnt --target /mnt/test-volume")
+    machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/test-volume")
+
+    # Execute both health checks against the VM's root filesystem and tmpfs
+    # storage volume. The storage check must create and remove its test file.
+    machine.succeed("systemctl start homelab-disk-health.service")
+    machine.succeed("systemctl start homelab-storage-health.service")
+    machine.succeed("test ! -e /mnt/test-volume/.homelab-storage-health-test")
+
+    # Verify the generated scripts consume this VM's notification settings.
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-system' /etc/homelab/scripts/homelab-disk-health")
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-system' /etc/homelab/scripts/homelab-storage-ntfy")
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-backup' /etc/homelab/scripts/homelab-backup-ntfy")
+    machine.succeed("! grep -Fq '@NTFY_' /etc/homelab/scripts/homelab-disk-health /etc/homelab/scripts/homelab-storage-health /etc/homelab/scripts/homelab-storage-ntfy /etc/homelab/scripts/homelab-backup-ntfy")
   '';
 }
