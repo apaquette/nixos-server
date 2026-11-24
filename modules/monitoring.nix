@@ -1,5 +1,12 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
+  storage = config.server.storage;
+  storageEnabled = storage.volumes != { } || storage.raidDevice != null;
+  storageMountPoints = map
+    (volume: volume.mountPoint)
+    (builtins.attrValues storage.volumes);
+  backupEnabled = config.services.restic.backups != { };
+
 service-paths = with pkgs; [
   bash
   coreutils
@@ -45,7 +52,7 @@ in
     };
   };
 
-  systemd.services.homelab-storage-health = {
+  systemd.services.homelab-storage-health = lib.mkIf storageEnabled {
     description = "Check homelab RAID and storage health";
     path = service-paths;
 
@@ -61,10 +68,7 @@ in
       "homelab-storage-notify@%p.service"
     ];
 
-    unitConfig.RequiresMountsFor = [
-      config.server.storage.dataRoot
-      config.server.storage.backupRoot
-    ];
+    unitConfig.RequiresMountsFor = storageMountPoints;
 
     serviceConfig = {
       Type = "oneshot";
@@ -73,7 +77,7 @@ in
     };
   };
 
-  systemd.timers.homelab-storage-health = {
+  systemd.timers.homelab-storage-health = lib.mkIf storageEnabled {
     description = "Periodic homelab storage health check";
 
     wantedBy = [
@@ -87,7 +91,7 @@ in
     };
   };
 
-  systemd.services."homelab-backup-notify@" = {
+  systemd.services."homelab-backup-notify@" = lib.mkIf backupEnabled {
     description = "Notify ntfy about failed backup service %i";
     path = service-paths;
     serviceConfig = {
@@ -97,7 +101,7 @@ in
     };
   };
 
-  systemd.services."homelab-storage-notify@" = {
+  systemd.services."homelab-storage-notify@" = lib.mkIf storageEnabled {
     description = "Notify ntfy about failed storage health service %i";
     path = service-paths;
     serviceConfig = {

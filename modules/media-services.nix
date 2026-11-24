@@ -1,9 +1,11 @@
 { config, pkgs, ... }:
 let
-   mediaServiceRequirements = {
-     after = [ "mnt-myraid.mount" ];
-     requires = [ "mnt-myraid.mount" ];
-   };
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Media services";
+
+  mediaServiceRequirements = {
+    unitConfig.RequiresMountsFor = [ applicationDataRoot ];
+  };
 in
 {
   services.sonarr = {
@@ -51,4 +53,10 @@ in
       };
     };
 
+  systemd.tmpfiles.rules = [
+    "d /var/lib/radarr 0750 radarr radarr -"
+    "d /var/lib/sonarr 0750 sonarr sonarr -"
+    "d /var/lib/prowlarr 0755 prowlarr prowlarr -"
+    "d /var/lib/qBittorrent 0755 qbittorrent qbittorrent -"
+  ];
 }

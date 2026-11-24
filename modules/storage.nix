@@ -1,31 +1,34 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   storage = config.server.storage;
+  volumeMountPoints = map
+    (volume: volume.mountPoint)
+    (builtins.attrValues storage.volumes);
+
+  roleAssertions = lib.mapAttrsToList
+    (role: volumeName: {
+      assertion = builtins.hasAttr volumeName storage.volumes;
+      message = "server.storage.roles.${role} references unknown volume '${volumeName}'.";
+    })
+    storage.roles;
 in
 {
+  assertions = [
+    {
+      assertion =
+        builtins.length volumeMountPoints
+        == builtins.length (lib.unique volumeMountPoints);
+      message = "Each server.storage.volumes entry must use a unique mountPoint.";
+    }
+  ] ++ roleAssertions;
+
   services.fstrim.enable = true;
 
-  fileSystems.${storage.dataRoot} = {
-    device = storage.dataDevice;
-    fsType = "ext4";
-    options = [ "nofail" ];
-  };
-
-  fileSystems.${storage.backupRoot} = {
-    device = storage.backupDevice;
-    fsType = "ext4";
-    options = [ "nofail" ];
-  };
-
-  systemd.tmpfiles.rules = [
-    "d /var/lib/radarr 0750 radarr radarr -"
-    "d /var/lib/sonarr 0750 sonarr sonarr -"
-    "d /var/lib/prowlarr 0755 prowlarr prowlarr -"
-    "d /var/lib/qBittorrent 0755 qbittorrent qbittorrent -"
-    "d /var/lib/minecraft 0700 minecraft minecraft -"
-    "d /var/lib/jellyfin 0750 jellyfin jellyfin -"
-    "d /var/log/jellyfin 0750 jellyfin jellyfin -"
-    "d /var/cache/jellyfin 0750 jellyfin jellyfin -"
-  ];
+  fileSystems = lib.mapAttrs'
+    (_: volume:
+      lib.nameValuePair volume.mountPoint {
+        inherit (volume) device fsType options;
+      })
+    storage.volumes;
 }

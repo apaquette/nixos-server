@@ -4,18 +4,18 @@
   # Storage-dependent native services
   (helpers.assertContains
     "Sonarr requires myraid"
-    "mnt-myraid.mount"
-    config.systemd.services.sonarr.requires)
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint
+    config.systemd.services.sonarr.unitConfig.RequiresMountsFor)
 
   (helpers.assertContains
     "Radarr requires myraid"
-    "mnt-myraid.mount"
-    config.systemd.services.radarr.requires)
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint
+    config.systemd.services.radarr.unitConfig.RequiresMountsFor)
 
   (helpers.assertContains
     "qBittorrent requires myraid"
-    "mnt-myraid.mount"
-    config.systemd.services.qbittorrent.requires)
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint
+    config.systemd.services.qbittorrent.unitConfig.RequiresMountsFor)
 
   # Backup failure notification handlers
   (builtins.all

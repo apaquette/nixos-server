@@ -2,6 +2,8 @@
 
 let
   nativeEnabled = config.services.nextcloud.enable;
+  applicationDataRoot =
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint;
 
   packageVersion =
     if nativeEnabled
@@ -96,7 +98,7 @@ in
 
   (helpers.assertEqual
   "Nextcloud data directory"
-  "${config.server.storage.dataRoot}/Nextcloud"
+  "${applicationDataRoot}/Nextcloud"
   (if nativeEnabled
    then config.services.nextcloud.settings.datadirectory
    else null))
@@ -220,7 +222,7 @@ in
 
   (helpers.assertEqual
     "Nextcloud data ownership command"
-    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${config.server.storage.dataRoot}/Nextcloud"
+    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${applicationDataRoot}/Nextcloud"
     config.systemd.services.nextcloud-data-ownership.serviceConfig.ExecStart)
 
   (helpers.assertContains

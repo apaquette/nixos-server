@@ -69,4 +69,8 @@
       godlesscleric = "c63f635d-43cb-48de-8a6d-032203300cf5";
     };
   };
+
+  systemd.tmpfiles.rules = [
+    "d /var/lib/minecraft 0700 minecraft minecraft -"
+  ];
 }

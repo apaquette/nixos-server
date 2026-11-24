@@ -1,5 +1,22 @@
-{ config,lib, unstable, ... }:
+{ config, lib, unstable, ... }:
 
+let
+  storage = config.server.storage;
+  storageResolver = import ./lib/storage.nix { inherit config; };
+
+  roleFilesystem = role: suffix:
+    if builtins.hasAttr role storage.roles then
+      "${storageResolver.mountPointForRole role "Beszel"}${suffix}"
+    else
+      null;
+
+  extraFilesystems = lib.filter
+    (filesystem: filesystem != null)
+    [
+      (roleFilesystem "localBackup" "__Backup_Storage")
+      (roleFilesystem "applicationData" "__RAID_Storage__")
+    ];
+in
 {
   services.beszel.hub = {
     enable = true;
@@ -26,8 +43,7 @@ services.beszel.agent = {
     LISTEN = "45876";
     KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFDTGvwZ3qofUZxq9cVmeVz0n9dfA9IRHwxyYvyLyboP";
     HUB_URL = "http://127.0.0.1:8090";
-    EXTRA_FILESYSTEMS =
-      "/mnt/backup__Backup_Storage,/mnt/myraid__RAID_Storage__";
+    EXTRA_FILESYSTEMS = lib.concatStringsSep "," extraFilesystems;
   };
 
   environmentFile = config.sops.templates."beszel-agent.env".path;

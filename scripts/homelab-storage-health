@@ -22,22 +22,15 @@ if [[ "@RAID_DEVICE@" != "none" ]]; then
     esac
 fi
 
-# Both filesystems must be mounted.
-mountpoint -q "@DATA_ROOT@" ||
-    fail "@DATA_ROOT@ is not mounted"
+# Verify every host-declared volume is mounted and writable.
+for mount in @STORAGE_MOUNT_POINTS@; do
+    mountpoint -q "$mount" || fail "$mount is not mounted"
 
-mountpoint -q "@BACKUP_ROOT@" ||
-    fail "@BACKUP_ROOT@ is not mounted"
-
-# Verify both mounts are writable without creating persistent files.
-if ! touch "@DATA_ROOT@/.homelab-storage-health-test" 2>/dev/null; then
-    fail "@DATA_ROOT@ is not writable"
-fi
-rm -f "@DATA_ROOT@/.homelab-storage-health-test"
-
-if ! touch "@BACKUP_ROOT@/.homelab-storage-health-test" 2>/dev/null; then
-    fail "@BACKUP_ROOT@ is not writable"
-fi
-rm -f "@BACKUP_ROOT@/.homelab-storage-health-test"
+    test_file="$mount/.homelab-storage-health-test"
+    if ! touch "$test_file" 2>/dev/null; then
+        fail "$mount is not writable"
+    fi
+    rm -f "$test_file"
+done
 
 exit 0

@@ -2,7 +2,8 @@
 
 let
   backups = config.services.restic.backups;
-  repository = "${config.server.storage.backupRoot}/Restic/${config.networking.hostName}";
+  backupVolume = config.server.storage.roles.localBackup;
+  repository = "${config.server.storage.volumes.${backupVolume}.mountPoint}/Restic/${config.networking.hostName}";
 
   backup = name: backups.${name};
 
@@ -521,7 +522,7 @@ lib.flatten [
   {
     assertion =
       !(builtins.elem
-        "${config.server.storage.dataRoot}/Videos"
+        "${config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint}/Videos"
         (backup "jellyfin").paths);
     message =
       "Jellyfin backup must not include the media library.";

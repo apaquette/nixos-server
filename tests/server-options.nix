@@ -30,9 +30,5 @@ with helpers;
       "homepage.alexpaquette.dev"
     ]
     config.server.network.localDnsNames)
-  (assertEqual "host data root" "/mnt/myraid" config.server.storage.dataRoot)
-  (assertEqual "host backup root" "/mnt/backup" config.server.storage.backupRoot)
-  (assertEqual "host data device" "/dev/disk/by-uuid/f316b340-b988-4306-8164-9f7d11250a55" config.server.storage.dataDevice)
-  (assertEqual "host backup device" "/dev/disk/by-uuid/2f26abd3-1603-4c8d-890c-a8a8aea9c5f1" config.server.storage.backupDevice)
   (assertEqual "host RAID device" "/dev/md0" config.server.storage.raidDevice)
 ]
