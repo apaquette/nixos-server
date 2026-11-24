@@ -104,7 +104,7 @@ in
     "f /var/lib/nextcloud/config/config.php 0640 nextcloud nextcloud - -"
   ];
 
-  services.nginx.virtualHosts."cloud.alexpaquette.dev" = {
+  services.nginx.virtualHosts.${config.services.nextcloud.hostName} = {
     listen = lib.mkForce [
       {
         addr = "127.0.0.1";
