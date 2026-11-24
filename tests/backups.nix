@@ -818,6 +818,11 @@ lib.flatten [
     "oneshot"
     (offsiteCopy.serviceConfig.Type or null))
 
+  (helpers.assertEqual
+    "Off-site destination repository comes from host configuration"
+    config.server.backups.remoteRepository
+    offsiteCopy.environment.RESTIC_REPOSITORY)
+
   (helpers.assertContains
     "Off-site copy requires local backup storage"
     repository
