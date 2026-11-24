@@ -31,6 +31,16 @@ pkgs.testers.nixosTest {
       };
     };
 
+    # Declare the actual VM tmpfs mount explicitly. The logical storage
+    # inventory above drives monitoring and systemd dependencies; this
+    # disposable mount provides the runtime resource used by the test.
+    fileSystems."/mnt/testvolume" = {
+      device = "tmpfs";
+      fsType = "tmpfs";
+      options = [ "mode=0755" ];
+      auto = true;
+    };
+
     # Use the VM's normal test networking rather than the production
     # homelab interface configuration.
     networking.useDHCP = true;
