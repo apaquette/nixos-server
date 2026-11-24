@@ -25,6 +25,10 @@ with helpers;
     "homelab-backups"
     config.server.notifications.ntfy.backupTopic)
   (assertEqual
+    "host remote backup repository"
+    "s3:https://08a653e653431727545c1cbbc844423d.r2.cloudflarestorage.com/homelab-restic/homelab"
+    config.server.backups.remoteRepository)
+  (assertEqual
     "host SOPS age identity path"
     "/var/lib/sops-nix/key.txt"
     config.server.secrets.ageKeyFile)
