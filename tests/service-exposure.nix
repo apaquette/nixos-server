@@ -1,5 +1,18 @@
-{ config, helpers, ... }:
+{ config, lib, helpers, ... }:
 
+let
+  serviceExposure = import ../modules/lib/service-exposure.nix { inherit lib; };
+
+  loopbackFixture = {
+    internalDatabase = {
+      exposure = "loopback";
+      hostname = "database.example.test";
+      httpUpstream = "127.0.0.1:5432";
+      tcpPorts = [ 5432 ];
+      udpPorts = [ 5433 ];
+    };
+  };
+in
 with helpers;
 
 [
@@ -147,4 +160,38 @@ with helpers;
     "public Minecraft has a local DNS override"
     "/mc.alexpaquette.dev/192.168.2.20"
     config.services.dnsmasq.settings.address)
+  (assertEqual
+    "loopback HTTP endpoint is excluded from Caddy routes"
+    { }
+    (serviceExposure.httpServices loopbackFixture))
+
+  (assertEqual
+    "loopback endpoint is excluded from local DNS publication"
+    { }
+    (serviceExposure.publishedServices true loopbackFixture))
+
+  (assertEqual
+    "loopback endpoint is excluded from public DDNS publication"
+    { }
+    (serviceExposure.publicServices true loopbackFixture))
+
+  (assertEqual
+    "loopback TCP ports are excluded from public firewall openings"
+    [ ]
+    (serviceExposure.portsForExposure "public" "tcp" loopbackFixture))
+
+  (assertEqual
+    "loopback UDP ports are excluded from public firewall openings"
+    [ ]
+    (serviceExposure.portsForExposure "public" "udp" loopbackFixture))
+
+  (assertEqual
+    "loopback TCP ports are excluded from LAN firewall openings"
+    [ ]
+    (serviceExposure.portsForExposure "lan" "tcp" loopbackFixture))
+
+  (assertEqual
+    "loopback UDP ports are excluded from LAN firewall openings"
+    [ ]
+    (serviceExposure.portsForExposure "lan" "udp" loopbackFixture))
 ]
