@@ -10,6 +10,8 @@ let
     else
       null;
 
+  agentPort = 45876;
+
   extraFilesystems = lib.filter
     (filesystem: filesystem != null)
     [
@@ -26,9 +28,12 @@ in
     dataDir = "/var/lib/beszel-hub";
 
     environment = {
-      APP_URL = "https://beszel.alexpaquette.dev";
+      APP_URL = "https://${config.server.services.beszel.hostname}";
     };
   };
+
+  server.services.beszel.httpUpstream = lib.mkDefault
+    "${config.services.beszel.hub.host}:${toString config.services.beszel.hub.port}";
 
   systemd.services.beszel-hub.serviceConfig.ExecStartPre = lib.mkForce [
     "${unstable.beszel}/bin/beszel-hub migrate up"
@@ -40,7 +45,7 @@ services.beszel.agent = {
 
   environment = {
     DATA_DIR = "/var/lib/beszel-agent";
-    LISTEN = "45876";
+    LISTEN = toString agentPort;
     KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFDTGvwZ3qofUZxq9cVmeVz0n9dfA9IRHwxyYvyLyboP";
     HUB_URL = "http://127.0.0.1:8090";
     EXTRA_FILESYSTEMS = lib.concatStringsSep "," extraFilesystems;
@@ -56,8 +61,10 @@ services.beszel.agent = {
     ];
   };
 
-  openFirewall = true;
+  openFirewall = false;
 };
+
+server.services.beszelAgent.tcpPorts = lib.mkDefault [ agentPort ];
 
 systemd.services.beszel-agent.serviceConfig.StateDirectory = "beszel-agent";
 }

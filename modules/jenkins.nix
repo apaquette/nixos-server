@@ -1,4 +1,4 @@
-{ ... }:
+{ config, lib, ... }:
 
 {
   services.jenkins = {
@@ -12,4 +12,7 @@
     plugins = null;
     packages = [ ];
   };
+
+  server.services.jenkins.httpUpstream = lib.mkDefault
+    "${config.services.jenkins.listenAddress}:${toString config.services.jenkins.port}";
 }

@@ -18,6 +18,7 @@
     ./users.nix
     ./network.nix
     ./storage.nix
+    ./services.nix
     ../../modules/server-options.nix
     ../../modules/networking.nix
     ../../modules/storage.nix

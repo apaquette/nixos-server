@@ -1,41 +1,60 @@
-{ config, ... }:
+{ config, lib, ... }:
 
+let
+  publicDomain = config.server.network.publicDomain;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
+
+  publicServices =
+    serviceExposure.publicServices config.services.caddy.enable config.server.services;
+
+  publicHostnames = map
+    (service: service.hostname)
+    (builtins.attrValues publicServices);
+
+  domainLabels = lib.sort builtins.lessThan
+    (map
+      (hostname: lib.removeSuffix ".${publicDomain}" hostname)
+      publicHostnames);
+in
 {
-  users.groups.ddclient-secrets = {};
-
-  services.ddclient = {
-    enable = true;
-
-    protocol = "namecheap";
-    server = "dynamicdns.park-your-domain.com";
-    username = "alexpaquette.dev";
-    passwordFile = config.sops.secrets."namecheap-ddns-password".path;
-
-    domains = [
-      "cloud"
-      "jellyfin"
-      "seerr"
-      "immich"
-      "ntfy"
-      "mc"
-    ];
-
-    interval = "5min";
-    ssl = true;
-
-    # Namecheap Dynamic DNS updates A records. Do not attempt an AAAA update.
-    usev4 = "webv4, webv4=ipify-ipv4";
-    usev6 = "";
+  assertions = lib.optional (publicHostnames != [ ]) {
+    assertion = builtins.all
+      (hostname: lib.hasSuffix ".${publicDomain}" hostname)
+      publicHostnames;
+    message = "Public service hostnames must belong to server.network.publicDomain.";
   };
 
-  # ddclient runs with DynamicUser=true. Grant it read access only to the
-  # dedicated SOPS secret group rather than making the password world-readable.
-  systemd.services.ddclient = {
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
+  config = lib.mkIf (domainLabels != [ ]) {
+    users.groups.ddclient-secrets = { };
 
-    serviceConfig.SupplementaryGroups = [
-      "ddclient-secrets"
-    ];
+    services.ddclient = {
+      enable = true;
+
+      protocol = "namecheap";
+      server = "dynamicdns.park-your-domain.com";
+      username = publicDomain;
+      passwordFile = config.sops.secrets."namecheap-ddns-password".path;
+
+      domains = domainLabels;
+
+      interval = "5min";
+      ssl = true;
+
+      # Namecheap Dynamic DNS updates A records. Do not attempt an AAAA update.
+      usev4 = "webv4, webv4=ipify-ipv4";
+      usev6 = "";
+
+    };
+
+    # ddclient runs with DynamicUser=true. Grant it read access only to the
+    # dedicated SOPS secret group rather than making the password world-readable.
+    systemd.services.ddclient = {
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+
+      serviceConfig.SupplementaryGroups = [
+        "ddclient-secrets"
+      ];
+    };
   };
 }

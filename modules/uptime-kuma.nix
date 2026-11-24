@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   security.pki.certificateFiles = [
@@ -17,4 +17,7 @@
       NODE_EXTRA_CA_CERTS = config.security.pki.caBundle;
     };
   };
+
+  server.services.status.httpUpstream = lib.mkDefault
+    "${config.services.uptime-kuma.settings.HOST}:${config.services.uptime-kuma.settings.PORT}";
 }
