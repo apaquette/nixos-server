@@ -64,11 +64,11 @@ pkgs.runCommand "homelab-configuration-tests" {} ''
 
   check_generated_script() {
     script="$1"
-    expected_url="$2"
+    expected_assignment="$2"
 
-    if ! ${pkgs.gnugrep}/bin/grep -Fq -- "NTFY_URL='$expected_url'" "$script"; then
-      echo "Expected notification URL was not rendered in $script:"
-      echo "  NTFY_URL='$expected_url'"
+    if ! ${pkgs.gnugrep}/bin/grep -Fq -- "$expected_assignment" "$script"; then
+      echo "Expected notification assignment was not rendered in $script:"
+      echo "  $expected_assignment"
       echo "Generated script contents:"
       cat "$script"
       exit 1
@@ -81,9 +81,9 @@ pkgs.runCommand "homelab-configuration-tests" {} ''
     fi
   }
 
-  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-backup-ntfy".source)} ${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.backupTopic}"}
-  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-storage-ntfy".source)} ${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}
-  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-disk-health".source)} ${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-backup-ntfy".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.backupTopic}"}"}
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-storage-ntfy".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}"}
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-disk-health".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}"}
 
   echo "All ${toString testCount} configuration assertions passed."
   touch $out
