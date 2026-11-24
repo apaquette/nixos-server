@@ -45,9 +45,14 @@ nix build --no-link --print-build-logs \
 
 The VM test requires a Linux builder with KVM support. GitHub Actions runs it on `ubuntu-latest`.
 
-## Require CI before merging
+## Required checks and branch ruleset
 
-Workflow jobs produce the following stable GitHub check names:
+The repository's active `quality-gate` ruleset applies to:
+
+- `dev`
+- `main` (the repository's default branch)
+
+It requires all five CI checks to pass before a pull request can merge:
 
 - `Flake evaluation`
 - `Declarative configuration tests`
@@ -55,14 +60,8 @@ Workflow jobs produce the following stable GitHub check names:
 - `Build synthetic system`
 - `Homelab VM integration test`
 
-Configure these as required status checks for the `dev` branch (and `main` if direct pull requests to the production branch are permitted):
+The ruleset also requires pull requests and prevents branch deletion and non-fast-forward updates. Both long-lived branches therefore use the same CI quality gate.
 
-1. Open the repository's **Settings → Branches** and add a branch protection rule for `dev`, or create an equivalent repository ruleset.
-2. Enable **Require a pull request before merging**.
-3. Enable **Require status checks to pass before merging**.
-4. Select all five check names listed above.
-5. Save the rule and verify that a pull request cannot merge while one of the required checks is failing.
+To inspect or maintain the ruleset, open **Settings → Rules → Rulesets → quality-gate**. When changing a workflow job's display name, update the required-check entry in the ruleset as part of the same change; otherwise GitHub may wait for a status name that the workflow no longer emits.
 
-**Current repository state:** the `dev` branch is not enforcing required status checks. Its branch-protection status currently reports no active required-check enforcement. The five checks above must still be added to the branch protection rule or repository ruleset.
-
-A successful Actions workflow is not, by itself, a merge block. Required status checks must be enabled in repository settings for GitHub to enforce them.
+A successful Actions workflow is not itself a deployment. CI evaluates and builds the configurations and runs the VM test, but it does not activate the homelab. Production deployment remains a deliberate operator action documented in [Production deployment](deployment.md).
