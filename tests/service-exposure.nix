@@ -134,10 +134,12 @@ with helpers;
       25565
       config.networking.firewall.interfaces.lan0.allowedUDPPorts))
 
-  (assertContains
+  (assertEqual
     "LAN-only Beszel agent port is restricted to trusted source networks"
-    "ip saddr { 192.168.2.0/24 } tcp dport { 45876 } accept"
-    config.networking.firewall.extraInputRules)
+    true
+    (lib.hasInfix
+      "ip saddr { 192.168.2.0/24 } tcp dport { 45876 } accept"
+      config.networking.firewall.extraInputRules))
 
   (assertEqual
     "loopback PostgreSQL port is not publicly opened"
