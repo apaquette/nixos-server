@@ -19,6 +19,8 @@
     ./network.nix
     ./storage.nix
     ./services.nix
+    ./secrets.nix
+    ./notifications.nix
     ../../modules/server-options.nix
     ../../modules/networking.nix
     ../../modules/storage.nix
