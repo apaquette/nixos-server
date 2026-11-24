@@ -199,11 +199,7 @@ The tests cover important invariants such as:
 
 See [CI and required checks](docs/ci.md) for the workflow and branch-protection setup.
 
-The production configuration is then activated with:
-
-```bash
-sudo nixos-rebuild switch --flake ~/Projects/homelab#homelab
-```
+See the [production deployment runbook](docs/deployment.md) for the complete build, dry-activation, temporary test, switch, runtime validation, and rollback procedure.
 
 ## Design principles
 
@@ -236,13 +232,13 @@ The v1.0.0 milestone established the declarative NixOS infrastructure and native
 | **v1.0.0** | NixOS migration, native services, sops-nix, local Restic backups | Complete |
 | **v1.1.0** | Off-site backups, retention, restore testing, disaster recovery | Complete |
 | **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
-| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | In progress |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Complete |
 | **v1.4.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
 v1.1.0 provides an independent off-site backup repository, enforced remote retention, weekly structural verification and representative restore testing, quarterly full-data verification, and a documented disaster-recovery procedure.
 
-The completed **v1.2.0** release adds Namecheap Dynamic DNS for the homelab's public IPv4 records. **v1.3.0 is in progress**: the typed host network and storage interfaces, generic storage roles, and service exposure contracts are implemented. Remaining work covers the final host-owned environment settings, a synthetic second-host regression configuration, expanded VM/CI validation, and the deployment/release workflow.
+The completed **v1.2.0** release adds Namecheap Dynamic DNS for the homelab's public IPv4 records. The v1.3.0 architecture, synthetic multi-host configuration, VM integration test, CI pipeline, and required branch checks are implemented. The remaining v1.3.0 acceptance work is to deploy the promoted `main` commit to the homelab, verify runtime health, and publish the versioned release.
 
 The v1.1.0 recovery procedure has not been rehearsed on a replacement host. The automated restore test validates representative `ntfy` data rather than proving complete recovery of every application. Backup-freshness alerting remains planned work.
 
@@ -256,6 +252,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and enginee
 * [Disaster Recovery](docs/disaster-recovery.md)
 * [Roadmap](docs/roadmap.md)
 * [CI and required checks](docs/ci.md)
+* [Production deployment](docs/deployment.md)
 
 ## License
 

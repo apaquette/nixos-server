@@ -483,7 +483,7 @@ A future architectural change that accidentally introduces a hardcoded host assu
 
 ## Continuous integration
 
-**Status: CI jobs implemented and passing; required branch protection remains outstanding.**
+**Status: Complete.**
 
 The GitHub Actions workflow runs for pushes and pull requests targeting `main` or `dev`. It separates validation into stable jobs:
 
@@ -493,11 +493,9 @@ The GitHub Actions workflow runs for pushes and pull requests targeting `main` o
 * Synthetic system build.
 * NixOS VM integration test.
 
-Separating these checks makes failures attributable to a specific validation stage and exposes stable status names that can be selected as required checks in GitHub branch protection.
+Separating these checks makes failures attributable to a specific validation stage and exposes stable status names for GitHub merge protection.
 
-The exact job names and local commands are documented in [CI and required checks](ci.md).
-
-**Merge protection:** CI failures produce failed checks, but GitHub will not block merges until the required status checks are enabled in a branch protection rule or repository ruleset. The `dev` branch currently has no active required-status-check enforcement. It must require all five CI jobs before Phase 6 can be considered fully enforced.
+The exact job names and local commands are documented in [CI and required checks](ci.md). The active `quality-gate` repository ruleset applies to `dev` and the default branch, `main`, and requires all five checks. Pull requests are required, and branch deletion and non-fast-forward updates are blocked.
 
 ---
 
@@ -525,44 +523,56 @@ VM testing complements rather than replaces declarative configuration assertions
 
 ## Deployment validation
 
-Formalize the production deployment workflow:
+**Status: Runbook documented; production deployment and release validation pending.**
+
+The operator-controlled production deployment procedure is documented in [Production deployment](deployment.md). It formalizes the path from an approved change to a versioned production release:
 
 ```text
-Change
+Feature branch
   ↓
-flake check
+Pull request → dev
   ↓
-build
+Required CI checks
   ↓
-test
+Release pull request: dev → main
   ↓
-inspect generation
+Required CI checks
   ↓
-switch
+Build and inspect candidate on homelab
   ↓
-runtime validation
+Temporary live activation (nixos-rebuild test)
   ↓
-commit / release
+Runtime validation
+  ↓
+Persistent activation (nixos-rebuild switch)
+  ↓
+Post-switch validation
+  ↓
+Version tag and GitHub release
 ```
 
-This provides a predictable path from configuration change to production deployment.
+Deployment is intentionally manual. GitHub Actions must not activate the production host: CI validates configuration and builds, while the operator controls when the live system is tested and switched.
 
-The workflow should continue to preserve the project's TDD approach: a new invariant or regression should be expressed as a failing test before the corresponding implementation change is considered complete.
+The deployment runbook includes preflight checks, the candidate/current generation inspection, service and storage validation, rollback procedures, and release tagging. The production release must be created from the exact `main` commit that was deployed and validated.
+
+The workflow continues to preserve the project's TDD approach: a new invariant or regression should be expressed as a failing test before the corresponding implementation change is considered complete.
 
 ---
 
 ## Versioned infrastructure releases
 
-Use Git tags for stable infrastructure milestones.
+**Status: Release process documented; v1.3.0 publication pending production validation.**
 
-Example:
+Use annotated Git tags and GitHub Releases for stable infrastructure milestones. A release tag must point to the exact `main` commit that has been deployed to the homelab and passed post-switch validation; do not tag an unmerged `dev` commit or create a release solely because CI passed.
 
-```text
-v1.0.0
-v1.0.1
-v1.1.0
-v1.2.0
-```
+The release path is:
+
+1. Complete the milestone on `dev`, with all required CI checks passing.
+2. Open and merge a pull request from `dev` to `main`.
+3. Deploy the resulting `main` commit to the homelab using the [production deployment runbook](deployment.md).
+4. Verify system, service, storage, and relevant external-access health after the switch.
+5. Create and push an annotated version tag on that same commit.
+6. Publish the GitHub Release with Markdown notes describing scope, validation, and known limitations.
 
 Semantic versioning should be used consistently:
 
@@ -570,7 +580,7 @@ Semantic versioning should be used consistently:
 * **Minor** releases for backward-compatible features and architectural enhancements.
 * **Major** releases for changes that require a breaking migration or materially alter the supported deployment model.
 
-Each release should represent a known-good infrastructure state that can be referenced during incident response or rollback.
+Each release should represent a known-good infrastructure state that can be referenced during incident response or rollback. A failed production validation blocks release publication; resolve or roll back the deployment before tagging.
 
 ---
 
@@ -743,10 +753,10 @@ The roadmap is intentionally ordered by operational and architectural value:
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
 | **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
 | **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
-| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | In progress |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Complete |
 | **v1.4.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
 The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-v1.2.0 is complete. v1.3.0 is in progress: the typed network, storage, service-exposure, secrets, notification, and remote-backup interfaces are implemented in the current architecture work. The remaining phases are to add a synthetic second-host regression configuration, integrate VM tests into CI, validate both host builds, and formalize deployment validation and release.
+v1.2.0 is complete. For v1.3.0, the typed host interfaces, optional storage roles, service-exposure contracts, synthetic second-host regression configuration, VM integration test, and multi-job CI are complete. The active `quality-gate` ruleset requires all five CI checks for `dev` and `main`.
