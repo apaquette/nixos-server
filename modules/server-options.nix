@@ -30,32 +30,6 @@ in
     };
   };
 
-  options.server.secrets = {
-    sopsFile = mkOption {
-      type = types.path;
-      description = "Host-specific encrypted SOPS file.";
-    };
-    ageKeyFile = mkOption {
-      type = types.str;
-      description = "Host-specific path to the SOPS age identity.";
-    };
-  };
-
-  options.server.notifications.ntfy = {
-    baseUrl = mkOption {
-      type = types.str;
-      description = "Base URL used by host notification scripts to reach ntfy.";
-    };
-    systemTopic = mkOption {
-      type = types.str;
-      description = "ntfy topic for system and storage notifications.";
-    };
-    backupTopic = mkOption {
-      type = types.str;
-      description = "ntfy topic for backup notifications.";
-    };
-  };
-
   options.server.network = {
     interfaceName = mkOption {
       type = types.str;
