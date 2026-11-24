@@ -25,7 +25,7 @@ pkgs.testers.nixosTest {
       raidDevice = null;
       volumes.vmTest = {
         device = "tmpfs";
-        mountPoint = "/mnt/test-volume";
+        mountPoint = "/mnt/testvolume";
         fsType = "tmpfs";
         options = [ "mode=0755" ];
       };
@@ -71,15 +71,15 @@ pkgs.testers.nixosTest {
 
     # Verify that the temporary storage volume is mounted and is a dependency
     # of the storage-health service.
-    machine.wait_for_unit("mnt-test-volume.mount")
-    machine.succeed("findmnt --target /mnt/test-volume")
-    machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/test-volume")
+    machine.wait_for_unit("mnt-testvolume.mount")
+    machine.succeed("findmnt --target /mnt/testvolume")
+    machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
 
     # Execute both health checks against the VM's root filesystem and tmpfs
     # storage volume. The storage check must create and remove its test file.
     machine.succeed("systemctl start homelab-disk-health.service")
     machine.succeed("systemctl start homelab-storage-health.service")
-    machine.succeed("test ! -e /mnt/test-volume/.homelab-storage-health-test")
+    machine.succeed("test ! -e /mnt/testvolume/.homelab-storage-health-test")
 
     # Verify the generated scripts consume this VM's notification settings.
     machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-system' /etc/homelab/scripts/homelab-disk-health")
