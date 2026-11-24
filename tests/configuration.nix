@@ -21,7 +21,7 @@ let
     { name = "monitoring"; result = import ./monitoring.nix { inherit config helpers; }; }
     { name = "backups"; result = import ./backups.nix { inherit config lib pkgs helpers; }; }
     { name = "smartd"; result = import ./smartd.nix { inherit config helpers; }; }
-    { name = "scripts"; result = import ./scripts.nix { inherit config helpers; }; }
+    { name = "scripts"; result = import ./scripts.nix { inherit config lib helpers; }; }
     { name = "hardware"; result = import ./hardware.nix { inherit config helpers; }; }
     { name = "invariants"; result = import ./invariants.nix { inherit config helpers; }; }
     { name = "hardware-specific"; result = import ./hardware-specific.nix { inherit config pkgs helpers; }; }
