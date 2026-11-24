@@ -59,7 +59,18 @@ let
     0
     tests;
 in
-pkgs.runCommand "homelab-configuration-tests" {} ''
+pkgs.runCommand "homelab-configuration-tests" {
+  backupNotificationScript =
+    config.environment.etc."homelab/scripts/homelab-backup-ntfy".source;
+  systemNotificationScript =
+    config.environment.etc."homelab/scripts/homelab-storage-ntfy".source;
+  diskHealthScript =
+    config.environment.etc."homelab/scripts/homelab-disk-health".source;
+} ''
+  ${pkgs.gnugrep}/bin/grep -F -- ${lib.escapeShellArg "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.backupTopic}'"} "$backupNotificationScript"
+  ${pkgs.gnugrep}/bin/grep -F -- ${lib.escapeShellArg "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}'"} "$systemNotificationScript"
+  ${pkgs.gnugrep}/bin/grep -F -- ${lib.escapeShellArg "NTFY_URL='${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}'"} "$diskHealthScript"
+  ! ${pkgs.gnugrep}/bin/grep -F "@NTFY_" "$backupNotificationScript" "$systemNotificationScript" "$diskHealthScript"
   echo "All ${toString testCount} configuration assertions passed."
   touch $out
 ''
