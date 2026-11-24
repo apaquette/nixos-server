@@ -23,7 +23,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v20
 
       - name: Check flake
-        run: nix flake check
+        run: nix flake check --print-build-logs
 
       - name: Build NixOS configuration
         run: nix build .#nixosConfigurations.homelab.config.system.build.toplevel
