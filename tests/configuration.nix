@@ -5,12 +5,13 @@ let
 
   tests = [
     { name = "networking"; result = import ./networking.nix { inherit config helpers; }; }
+    { name = "service-exposure"; result = import ./service-exposure.nix { inherit config lib helpers; }; }
     { name = "server-options"; result = import ./server-options.nix { inherit config helpers; }; }
     { name = "storage"; result = import ./storage.nix { inherit config helpers; }; }
     { name = "storage-volumes"; result = import ./storage-volumes.nix { inherit config helpers; }; }
     { name = "users"; result = import ./users.nix { inherit config helpers; }; }
     { name = "caddy"; result = import ./caddy.nix { inherit config helpers; }; }
-    { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config helpers; }; }
+    { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config lib helpers; }; }
     { name = "jellyfin"; result = import ./jellyfin.nix { inherit config pkgs helpers; }; }
     { name = "media-services"; result = import ./media-services.nix { inherit config helpers; }; }
     { name = "seerr"; result = import ./seerr.nix { inherit config pkgs helpers; }; }

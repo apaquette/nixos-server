@@ -1,8 +1,11 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   network = config.server.network;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
 
+  publishedServices =
+    serviceExposure.publishedServices config.services.caddy.enable config.server.services;
 in
 {
   services.dnsmasq = {
@@ -19,8 +22,8 @@ in
       ];
       log-dhcp = true;
       address = map
-        (hostname: "/${hostname}/${network.lanAddress}")
-        network.localDnsNames;
+        (service: "/${service.hostname}/${network.lanAddress}")
+        (builtins.attrValues publishedServices);
       server = network.dnsServers;
       no-resolv = true;
       cache-size = 1000;

@@ -42,7 +42,7 @@ let
 
   nginxListen =
     if nativeEnabled
-    then config.services.nginx.virtualHosts."cloud.alexpaquette.dev".listen
+    then config.services.nginx.virtualHosts.${config.services.nextcloud.hostName}.listen
     else null;
 
   redisEnabled =

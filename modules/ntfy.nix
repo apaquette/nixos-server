@@ -1,4 +1,4 @@
-{ config, unstable, ... }:
+{ config, lib, unstable, ... }:
 
 {
   services.ntfy-sh = {
@@ -6,7 +6,7 @@
     package = unstable.ntfy-sh;
 
     settings = {
-      base-url = "https://ntfy.alexpaquette.dev";
+      base-url = "https://${config.server.services.ntfy.hostname}";
       listen-http = "127.0.0.1:8093";
 
       auth-file = "/var/lib/ntfy-sh/auth.db";
@@ -17,4 +17,7 @@
       behind-proxy = true;
     };
   };
+
+  server.services.ntfy.httpUpstream = lib.mkDefault
+    config.services.ntfy-sh.settings.listen-http;
 }

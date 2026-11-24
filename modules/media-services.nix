@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   storage = import ./lib/storage.nix { inherit config; };
   applicationDataRoot = storage.mountPointForRole "applicationData" "Media services";
@@ -52,6 +52,12 @@ in
         SupplementaryGroups = config.users.users.qbittorrent.extraGroups;
       };
     };
+
+  server.services.radarr.httpUpstream = lib.mkDefault "127.0.0.1:7878";
+  server.services.sonarr.httpUpstream = lib.mkDefault "127.0.0.1:8989";
+  server.services.prowlarr.httpUpstream = lib.mkDefault "127.0.0.1:9696";
+  server.services.qbittorrent.httpUpstream = lib.mkDefault
+    "127.0.0.1:${toString config.services.qbittorrent.webuiPort}";
 
   systemd.tmpfiles.rules = [
     "d /var/lib/radarr 0750 radarr radarr -"
