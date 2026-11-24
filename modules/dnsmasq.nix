@@ -2,17 +2,10 @@
 
 let
   network = config.server.network;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
 
-  publishedServices = lib.filterAttrs
-    (_: service:
-      service.hostname != null
-      && service.exposure != "loopback"
-      && (
-        (service.httpUpstream != null && config.services.caddy.enable)
-        || service.tcpPorts != [ ]
-        || service.udpPorts != [ ]
-      ))
-    config.server.services;
+  publishedServices =
+    serviceExposure.publishedServices config.services.caddy.enable config.server.services;
 in
 {
   services.dnsmasq = {
