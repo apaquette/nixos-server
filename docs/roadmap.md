@@ -753,10 +753,10 @@ The roadmap is intentionally ordered by operational and architectural value:
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
 | **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
 | **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
-| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | In progress |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Complete |
 | **v1.4.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
 The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-v1.2.0 is complete. For v1.3.0, the typed host interfaces, optional storage roles, service-exposure contracts, synthetic second-host regression configuration, VM integration test, and multi-job CI are complete. The active `quality-gate` ruleset requires all five CI checks for `dev` and `main`. The remaining milestone acceptance work is the production deployment of the promoted `main` commit, runtime validation, and publication of the v1.3.0 tag and GitHub Release.
+v1.2.0 is complete. For v1.3.0, the typed host interfaces, optional storage roles, service-exposure contracts, synthetic second-host regression configuration, VM integration test, and multi-job CI are complete. The active `quality-gate` ruleset requires all five CI checks for `dev` and `main`.
