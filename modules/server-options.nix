@@ -30,6 +30,11 @@ in
     };
   };
 
+  options.server.backups.remoteRepository = mkOption {
+    type = types.str;
+    description = "Host-specific remote Restic repository URI.";
+  };
+
   options.server.network = {
     interfaceName = mkOption {
       type = types.str;
