@@ -6,7 +6,6 @@ pkgs.testers.nixosTest {
   nodes.machine = {
     imports = [
       ../modules/server-options.nix
-      ../modules/storage.nix
       ../modules/scripts.nix
       ../modules/monitoring.nix
     ];
@@ -31,22 +30,20 @@ pkgs.testers.nixosTest {
       };
     };
 
-    # Declare the actual VM tmpfs mount explicitly. The logical storage
-    # inventory above drives monitoring and systemd dependencies; this
-    # disposable mount provides the runtime resource used by the test.
-    fileSystems."/mnt/testvolume" = {
-      device = "tmpfs";
-      fsType = "tmpfs";
-      options = [ "mode=0755" ];
-      auto = true;
-    };
-
     # Use the VM's normal test networking rather than the production
     # homelab interface configuration.
     networking.useDHCP = true;
 
-    # The VM does not have the production storage devices.
-    services.fstrim.enable = lib.mkForce false;
+    # Provide an isolated tmpfs mount for the storage-health service.
+    # The service's RequiresMountsFor dependency must activate this mount.
+    systemd.mounts = [
+      {
+        what = "tmpfs";
+        where = "/mnt/testvolume";
+        type = "tmpfs";
+        options = "mode=0755";
+      }
+    ];
 
     # The production scripts are installed declaratively.
     environment.systemPackages = [
@@ -79,16 +76,16 @@ pkgs.testers.nixosTest {
     machine.succeed("systemctl is-active homelab-disk-health.timer")
     machine.succeed("systemctl is-active homelab-storage-health.timer")
 
-    # Verify that the temporary storage volume is mounted and is a dependency
-    # of the storage-health service.
-    machine.wait_for_unit("mnt-testvolume.mount")
-    machine.succeed("findmnt --target /mnt/testvolume")
+    # Verify that the storage-health service declares the configured mount
+    # dependency. Starting the service must activate the tmpfs mount first.
     machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
 
     # Execute both health checks against the VM's root filesystem and tmpfs
     # storage volume. The storage check must create and remove its test file.
     machine.succeed("systemctl start homelab-disk-health.service")
     machine.succeed("systemctl start homelab-storage-health.service")
+    machine.succeed("systemctl is-active mnt-testvolume.mount")
+    machine.succeed("findmnt --mountpoint /mnt/testvolume")
     machine.succeed("test ! -e /mnt/testvolume/.homelab-storage-health-test")
 
     # Verify the generated scripts consume this VM's notification settings.
