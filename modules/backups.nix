@@ -7,11 +7,7 @@ let
   repository = "${localBackupRoot}/Restic/${config.networking.hostName}";
   passwordFile = config.sops.secrets."restic-repository-password".path;
 
-  r2AccountId = "08a653e653431727545c1cbbc844423d";
-  r2Bucket = "homelab-restic";
-  r2Prefix = "homelab";
-
-  r2Repository = "s3:https://${r2AccountId}.r2.cloudflarestorage.com/${r2Bucket}/${r2Prefix}";
+  r2Repository = config.server.backups.remoteRepository;
 
   immichUploadLocation = builtins.dirOf config.services.immich.mediaLocation;
 
