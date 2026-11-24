@@ -2,7 +2,7 @@
 set -euo pipefail
 
 STATE_DIR="/var/lib/homelab/disk-health"
-NTFY_URL="https://ntfy.alexpaquette.dev/homelab-system"
+NTFY_URL=@NTFY_SYSTEM_URL@
 NTFY_TOKEN_FILE="/etc/smartd-ntfy-token"
 
 WARNING=80
