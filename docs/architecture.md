@@ -47,10 +47,14 @@ The reusable modules consume typed host values declared by `modules/server-optio
 
 The current interfaces are:
 
-- `server.network.*` for the interface identity, static LAN address, gateway, DNS servers, DHCP range, reservations, and host-owned local DNS names.
+- `server.network.*` for interface identity, static LAN address, gateway, DNS servers, DHCP range, reservations, trusted source CIDRs, and public DNS zone.
+- `server.services.*` for host-selected service hostnames and public, LAN-only, or loopback exposure policies. Service modules contribute their backend endpoint and direct TCP/UDP requirements.
 - `server.storage.volumes` for host-defined local filesystem resources. Each volume is declared once with its device, mount point, filesystem type, and mount options.
 - `server.storage.roles` for optional semantic references such as `applicationData` and `localBackup`.
 - `server.storage.raidDevice` for an optional host-specific RAID device monitored by storage health checks.
+- `server.secrets.*` for the encrypted SOPS file and age identity path.
+- `server.notifications.ntfy.*` for the notification base URL and topic names used by generated scripts.
+- `server.backups.remoteRepository` for the host-specific remote Restic repository URI.
 
 The storage module generates NixOS filesystem mount definitions from the host's volume inventory. Service modules resolve the logical role they require to a volume mount point, then retain ownership of application-specific subdirectories. Hosts can omit unused volumes and roles. Hardware-specific RAID assembly remains in the host's storage definition.
 
@@ -64,7 +68,7 @@ Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage h
 
 Storage resources and logical roles are independent. A host may provide an `applicationData` role without a `localBackup` role, or omit host-provided data storage if its selected services do not need it. A backup volume and role are required only when the host selects modules that use local backup storage. RAID support is also optional.
 
-The current configuration does not fully meet every target: the backup module still aggregates jobs for several applications, and internal Caddy virtual hosts do not yet have explicit LAN source restrictions. The fixed data/backup storage interface has been replaced by generic volumes and optional logical roles. The synthetic second-host test and enforced service exposure policies remain to be implemented.
+The configuration now uses generic volumes and optional logical storage roles, and service exposure is enforced by the shared Caddy, DNS, DDNS, and firewall selectors. LAN Caddy routes include trusted-source restrictions, direct LAN TCP/UDP ingress is limited by nftables source rules, and loopback services are excluded from external ingress. The synthetic second-host configuration remains the next architectural validation step. The backup module still aggregates several application-specific backup jobs; splitting those into service-owned backup integrations is a separate follow-up rather than a prerequisite for the current host interfaces.
 
 The module design follows SOLID at the configuration boundary:
 
@@ -88,7 +92,7 @@ dnsmasq provides:
 * local service records
 * service discovery through the configured domain
 
-The host declares the local DNS names through `server.network.localDnsNames`; dnsmasq maps those names to the host's configured LAN address. This keeps deployment-specific names out of the reusable dnsmasq module. The later service-endpoint work should allow these records to be derived from declared, enabled services rather than maintaining another independent service list.
+dnsmasq derives local DNS records from active service contracts in `server.services.*`. HTTP services are published when Caddy ingress is enabled; direct TCP/UDP services can publish independently. Loopback services are excluded, so DNS publication follows enabled service capabilities rather than a second manually maintained hostname list.
 
 Internal service names resolve to the host on the local network, while Caddy handles the corresponding HTTP/TLS routing.
 
@@ -104,13 +108,13 @@ The target design distinguishes three client access policies:
 
 These policies are independent of the backend listener. For example, Jellyfin can listen on loopback while Caddy provides public access; Homepage can listen on loopback while Caddy exposes it only to LAN clients. Direct TCP/UDP services such as Minecraft declare their own ingress protocol and port rather than using Caddy.
 
-The homelab's intended assignments are Jellyfin (`public` through Caddy), Minecraft (`public` through direct TCP ingress), Beszel (`lan` through Caddy), and Homepage (`lan` through Caddy). These are target policies; the current configuration does not yet enforce all of them. Other services must be classified explicitly as part of the service inventory.
+The homelab's intended assignments are Jellyfin (`public` through Caddy), Minecraft (`public` through direct TCP ingress), Beszel (`lan` through Caddy), and Homepage (`lan` through Caddy). The homelab declares these policies in its host service inventory. Other imported services are also classified there; service modules provide endpoints, while the host selects hostnames and exposure policy.
 
 Caddy consumes HTTP(S) service contracts and applies the declared access policy. The firewall consumes the ingress requirements and opens only the necessary ports and sources. Direct service ingress is handled by the relevant service/network integration.
 
 DNS is separate from exposure policy. Public DNS records and local DNS overrides do not authorize access. A public service may also have a local DNS override resolving to the server's LAN address. Conversely, a private DNS record does not make a route private.
 
-**Current implementation limitation:** several internal virtual hosts currently use `tls internal`, but that only selects Caddy's internal certificate authority; it does not restrict clients to the LAN. Those hosts must not be considered securely LAN-only until explicit source restrictions or equivalent ingress controls are implemented and tested. Actual public reachability also depends on router/NAT forwarding outside this repository.
+LAN-only Caddy routes combine `tls internal` with an explicit remote-source matcher that returns HTTP 403 to clients outside configured trusted networks. LAN-only direct TCP/UDP ingress is restricted by nftables source rules. Loopback services receive no external ingress. Actual public reachability still depends on router/NAT forwarding outside this repository.
 
 ## Application services
 
@@ -199,24 +203,26 @@ The database layer is kept separate from application binaries and is managed by 
 
 Database-backed backups use explicit PostgreSQL dumps rather than relying only on filesystem copies. Where application consistency requires it, the backup job temporarily places the relevant service into a consistent state before creating the dump and filesystem snapshot.
 
-## Secrets
+## Secrets and host environment configuration
 
-Secrets are managed with sops-nix.
+Secrets are managed with sops-nix. The host supplies the encrypted file and age identity through `server.secrets.sopsFile` and `server.secrets.ageKeyFile`; these values live in the host's `secrets.nix`. The reusable SOPS module consumes them while retaining the logical secret names and key mappings required by the selected services.
 
 The flow is:
 
 ```text
-Encrypted SOPS file
-        │
-        ▼
-      NixOS
-        │
-        ├── runtime secret files
-        ├── generated environment files
-        └── generated service configuration
+Host secret source + age identity
+              │
+              ▼
+            NixOS
+              │
+              ├── runtime secret files
+              ├── generated environment files
+              └── generated service configuration
 ```
 
-Secrets remain encrypted in Git and are materialized only on the host.
+Secret values remain encrypted in Git and are materialized only on the host. The SOPS file path and decryption-key path are host configuration, not reusable module defaults.
+
+The ntfy base URL and notification topic names are declared separately through `server.notifications.ntfy.*` and substituted into notification scripts during the build. The ntfy authentication token remains an SOPS-managed secret. The remote Restic repository URI is supplied through `server.backups.remoteRepository`; its access keys and repository password remain encrypted secrets.
 
 Examples include:
 
