@@ -36,7 +36,7 @@ pkgs.testers.nixosTest {
     networking.useDHCP = true;
 
     # The VM does not have the production storage devices.
-    services.fstrim.enable = false;
+    services.fstrim.enable = lib.mkForce false;
 
     # The production scripts are installed declaratively.
     environment.systemPackages = [
