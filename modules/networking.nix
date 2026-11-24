@@ -3,14 +3,12 @@
 let
   network = config.server.network;
   services = config.server.services;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
 
-  publicServices = lib.filterAttrs (_: service: service.exposure == "public") services;
-  lanServices = lib.filterAttrs (_: service: service.exposure == "lan") services;
-
-  publicTcpPorts = lib.unique (lib.concatMap (service: service.tcpPorts) (builtins.attrValues publicServices));
-  publicUdpPorts = lib.unique (lib.concatMap (service: service.udpPorts) (builtins.attrValues publicServices));
-  lanTcpPorts = lib.unique (lib.concatMap (service: service.tcpPorts) (builtins.attrValues lanServices));
-  lanUdpPorts = lib.unique (lib.concatMap (service: service.udpPorts) (builtins.attrValues lanServices));
+  publicTcpPorts = serviceExposure.portsForExposure "public" "tcp" services;
+  publicUdpPorts = serviceExposure.portsForExposure "public" "udp" services;
+  lanTcpPorts = serviceExposure.portsForExposure "lan" "tcp" services;
+  lanUdpPorts = serviceExposure.portsForExposure "lan" "udp" services;
 
   dnsmasqEnabled = config.services.dnsmasq.enable;
   caddyIngressEnabled =
@@ -80,5 +78,5 @@ in
   };
 
   networking.nftables.enable = lanInputRules != [ ];
-  networking.firewall.extraInputRules = lanInputRules;
+  networking.firewall.extraInputRules = lib.concatStringsSep "\n" lanInputRules;
 }
