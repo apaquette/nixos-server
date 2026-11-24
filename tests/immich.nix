@@ -110,14 +110,9 @@ in
     server.after)
 
   (helpers.assertContains
-    "immich server requires RAID mount"
-    "mnt-myraid.mount"
-    server.requires)
-
-  (helpers.assertContains
-    "immich server starts after RAID mount"
-    "mnt-myraid.mount"
-    server.after)
+    "immich server requires its host data filesystem"
+    cfg.mediaLocation
+    server.unitConfig.RequiresMountsFor)
 
   (helpers.assertEqual
     "immich PostgreSQL enabled"

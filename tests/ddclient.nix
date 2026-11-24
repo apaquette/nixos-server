@@ -27,11 +27,11 @@ with helpers;
     "Namecheap DDNS host labels"
     [
       "cloud"
-      "jellyfin"
-      "seerr"
       "immich"
-      "ntfy"
+      "jellyfin"
       "mc"
+      "ntfy"
+      "seerr"
     ]
     config.services.ddclient.domains)
 

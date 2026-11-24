@@ -20,7 +20,7 @@ with helpers;
 
   (assertEqual
     "Caddy Jellyfin upstream"
-    "reverse_proxy 192.168.2.20:8096\n"
+    "reverse_proxy 127.0.0.1:8096\n"
     config.services.caddy.virtualHosts."jellyfin.alexpaquette.dev".extraConfig)
 
   (assertEqual
@@ -40,46 +40,46 @@ with helpers;
 
   (assertEqual
     "Caddy Radarr configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:7878\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:7878\n"
     config.services.caddy.virtualHosts."radarr.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Sonarr configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:8989\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:8989\n"
     config.services.caddy.virtualHosts."sonarr.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Prowlarr configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:9696\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:9696\n"
     config.services.caddy.virtualHosts."prowlarr.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy qBittorrent configuration"
-    "tls internal\nreverse_proxy 192.168.2.20:8080\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:8080\n"
     config.services.caddy.virtualHosts."qbittorrent.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Cockpit configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:9090\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:9090\n"
     config.services.caddy.virtualHosts."cockpit.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy status configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:3001\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:3001\n"
     config.services.caddy.virtualHosts."status.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Beszel configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:8090\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:8090\n"
     config.services.caddy.virtualHosts."beszel.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Jenkins configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:8082\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:8082\n"
     config.services.caddy.virtualHosts."jenkins.alexpaquette.dev".extraConfig)
 
   (assertEqual
     "Caddy Homepage configuration"
-    "tls internal\nreverse_proxy 127.0.0.1:3000\n"
+    "tls internal\n@denied not remote_ip 192.168.2.0/24\nrespond @denied \"Forbidden\" 403\nreverse_proxy 127.0.0.1:3000\n"
     config.services.caddy.virtualHosts."homepage.alexpaquette.dev".extraConfig)
 ]

@@ -104,6 +104,12 @@ Application services are managed as native NixOS services where practical. Persi
 │   └── homelab/
 │       ├── default.nix
 │       ├── hardware-configuration.nix
+│       ├── network.nix
+│       ├── storage.nix
+│       ├── services.nix
+│       ├── notifications.nix
+│       ├── secrets.nix
+│       ├── backup.nix
 │       └── users.nix
 ├── modules/
 │   ├── backups.nix
@@ -175,26 +181,25 @@ Detailed procedures are documented in [`docs/backup-and-restore.md`](docs/backup
 Configuration changes are validated before activation:
 
 ```bash
-nix flake check
+nix flake check --print-build-logs
 sudo nixos-rebuild build --flake ~/Projects/homelab#homelab
 ```
 
-The project contains declarative configuration assertions and NixOS VM tests for important invariants such as:
+GitHub Actions separately evaluates the flake, builds the declarative and multi-host checks, builds both the homelab and synthetic NixOS system closures, and executes the NixOS VM integration test. The VM test uses a disposable tmpfs volume and does not touch production storage.
 
-* enabled services
-* service dependencies
-* storage configuration
-* DNS configuration
-* secret wiring
-* backup configuration
-* monitoring
-* removal of obsolete service definitions
+The tests cover important invariants such as:
 
-The production configuration is then activated with:
+* enabled services and service dependencies
+* network and service exposure configuration
+* storage declarations and mount dependencies
+* DNS configuration and host isolation
+* generated notification script settings
+* monitoring services and timers
+* backup configuration and removal of obsolete service definitions
 
-```bash
-sudo nixos-rebuild switch --flake ~/Projects/homelab#homelab
-```
+See [CI and required checks](docs/ci.md) for the workflow and branch-protection setup.
+
+See the [production deployment runbook](docs/deployment.md) for the complete build, dry-activation, temporary test, switch, runtime validation, and rollback procedure.
 
 ## Design principles
 
@@ -227,13 +232,13 @@ The v1.0.0 milestone established the declarative NixOS infrastructure and native
 | **v1.0.0** | NixOS migration, native services, sops-nix, local Restic backups | Complete |
 | **v1.1.0** | Off-site backups, retention, restore testing, disaster recovery | Complete |
 | **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
-| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Next |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Complete |
 | **v1.4.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
 v1.1.0 provides an independent off-site backup repository, enforced remote retention, weekly structural verification and representative restore testing, quarterly full-data verification, and a documented disaster-recovery procedure.
 
-The completed **v1.2.0** release adds Namecheap Dynamic DNS for the homelab's public IPv4 records. The next engineering milestone is **v1.3.0**, focused on making the infrastructure reusable across multiple hosts, establishing multi-host configuration tests, and strengthening CI and deployment validation before introducing distributed infrastructure.
+The completed **v1.2.0** release adds Namecheap Dynamic DNS for the homelab's public IPv4 records. The v1.3.0 architecture, synthetic multi-host configuration, VM integration test, CI pipeline, and required branch checks are implemented. The remaining v1.3.0 acceptance work is to deploy the promoted `main` commit to the homelab, verify runtime health, and publish the versioned release.
 
 The v1.1.0 recovery procedure has not been rehearsed on a replacement host. The automated restore test validates representative `ntfy` data rather than proving complete recovery of every application. Backup-freshness alerting remains planned work.
 
@@ -246,6 +251,8 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and enginee
 * [Backup and Restore](docs/backup-and-restore.md)
 * [Disaster Recovery](docs/disaster-recovery.md)
 * [Roadmap](docs/roadmap.md)
+* [CI and required checks](docs/ci.md)
+* [Production deployment](docs/deployment.md)
 
 ## License
 

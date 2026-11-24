@@ -1,74 +1,33 @@
-{ pkgs, ... }:
+{ config, lib, ... }:
 
+let
+  services = config.server.services;
+  network = config.server.network;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
+
+  httpServices = serviceExposure.httpServices services;
+
+  mkVirtualHost = _: service:
+    let
+      accessControl =
+        if service.exposure == "lan" then
+          ''
+            tls internal
+            @denied not remote_ip ${lib.concatStringsSep " " network.trustedNetworks}
+            respond @denied "Forbidden" 403
+          ''
+        else
+          "";
+    in
+    lib.nameValuePair service.hostname {
+      extraConfig = ''
+        ${accessControl}reverse_proxy ${service.httpUpstream}
+      '';
+    };
+in
 {
   services.caddy = {
     enable = true;
-
-    virtualHosts = {
-      "cloud.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:8081
-      '';
-
-      "jellyfin.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 192.168.2.20:8096
-      '';
-
-      "seerr.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:5055
-      '';
-
-      "immich.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:2283
-      '';
-
-      "ntfy.alexpaquette.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:8093
-      '';
-
-      "radarr.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:7878
-      '';
-
-      "sonarr.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:8989
-      '';
-
-      "prowlarr.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:9696
-      '';
-
-      "qbittorrent.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 192.168.2.20:8080
-      '';
-
-      "cockpit.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:9090
-      '';
-
-      "status.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:3001
-      '';
-
-      "beszel.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:8090
-      '';
-
-      "jenkins.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:8082
-      '';
-
-      "homepage.alexpaquette.dev".extraConfig = ''
-        tls internal
-        reverse_proxy 127.0.0.1:3000
-      '';
-    };
+    virtualHosts = lib.mapAttrs' mkVirtualHost httpServices;
   };
 }

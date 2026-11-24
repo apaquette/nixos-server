@@ -1,5 +1,11 @@
 { config, helpers, ... }:
 
+let
+  applicationDataMountPoint =
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint;
+  localBackupMountPoint =
+    config.server.storage.volumes.${config.server.storage.roles.localBackup}.mountPoint;
+in
 [
   (helpers.assertEqual
     "root filesystem type"
@@ -22,24 +28,24 @@
     config.fileSystems."/boot".options)
 
   (helpers.assertEqual
-    "myraid filesystem type"
+    "application-data filesystem type"
     "ext4"
-    config.fileSystems."/mnt/myraid".fsType)
+    config.fileSystems.${applicationDataMountPoint}.fsType)
 
   (helpers.assertContains
-    "myraid filesystem options"
+    "application-data filesystem options"
     "nofail"
-    config.fileSystems."/mnt/myraid".options)
+    config.fileSystems.${applicationDataMountPoint}.options)
 
   (helpers.assertEqual
-    "backup filesystem type"
+    "local-backup filesystem type"
     "ext4"
-    config.fileSystems."/mnt/backup".fsType)
+    config.fileSystems.${localBackupMountPoint}.fsType)
 
   (helpers.assertContains
-    "backup filesystem options"
+    "local-backup filesystem options"
     "nofail"
-    config.fileSystems."/mnt/backup".options)
+    config.fileSystems.${localBackupMountPoint}.options)
 
   (helpers.assertContains
     "initrd NVMe module"

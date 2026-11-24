@@ -14,32 +14,38 @@ with helpers;
     config.systemd.timers.homelab-storage-health.timerConfig.OnUnitActiveSec)
 
   (assertEqual
+    "disk health required mounts"
+    (map
+      (volume: volume.mountPoint)
+      (builtins.attrValues config.server.storage.volumes))
+    config.systemd.services.homelab-disk-health.unitConfig.RequiresMountsFor)
+
+  (assertEqual
     "storage health required mounts"
-    [
-      "/mnt/myraid"
-      "/mnt/backup"
-    ]
+    (map
+      (volume: volume.mountPoint)
+      (builtins.attrValues config.server.storage.volumes))
     config.systemd.services.homelab-storage-health.unitConfig.RequiresMountsFor)
 
   (assertEqual
     "storage health failure notification"
     [ "homelab-storage-notify@%p.service" ]
     config.systemd.services.homelab-storage-health.onFailure)
-builtins.all
-  (
-    name:
-    builtins.elem
-      "homelab-backup-notify@%p.service"
-      config.systemd.services."restic-backups-${name}".onFailure
-  )
-  [
-    "nextcloud"
-    "immich"
-    "minecraft"
-    "jellyfin"
-    "sonarr"
-    "radarr"
-    "beszel"
-    "ntfy"
-  ]
+
+  # Keep the aggregate backup-notification invariant as one boolean test item.
+  (builtins.all
+    (name:
+      builtins.elem
+        "homelab-backup-notify@%p.service"
+        config.systemd.services."restic-backups-${name}".onFailure)
+    [
+      "nextcloud"
+      "immich"
+      "minecraft"
+      "jellyfin"
+      "sonarr"
+      "radarr"
+      "beszel"
+      "ntfy"
+    ])
 ]

@@ -1,5 +1,9 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
+let
+  gamePort = 4300;
+  queryPort = 25565;
+in
 {
   services.minecraft-server = {
     enable = true;
@@ -14,9 +18,9 @@
     openFirewall = false;
 
     serverProperties = {
-      server-port = 4300;
+      server-port = gamePort;
       enable-query = true;
-      "query.port" = 25565;
+      "query.port" = queryPort;
 
       difficulty = "normal";
       gamemode = "survival";
@@ -69,4 +73,11 @@
       godlesscleric = "c63f635d-43cb-48de-8a6d-032203300cf5";
     };
   };
+
+  server.services.minecraft.tcpPorts = lib.mkDefault [ gamePort ];
+  server.services.minecraft.udpPorts = lib.mkDefault [ queryPort ];
+
+  systemd.tmpfiles.rules = [
+    "d /var/lib/minecraft 0700 minecraft minecraft -"
+  ];
 }

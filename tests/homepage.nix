@@ -25,7 +25,7 @@ with helpers;
 
   (assertEqual
     "Homepage allowed host"
-    "homepage.alexpaquette.dev"
+    config.server.services.homepage.hostname
     config.services.homepage-dashboard.allowedHosts)
 
   (assertEqual
@@ -65,7 +65,7 @@ with helpers;
 
   (assertEqual
     "Homepage HOMEPAGE_ALLOWED_HOSTS"
-    "homepage.alexpaquette.dev"
+    config.server.services.homepage.hostname
     config.systemd.services.homepage-dashboard.environment.HOMEPAGE_ALLOWED_HOSTS)
 
   (assertEqual

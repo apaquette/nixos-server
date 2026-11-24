@@ -4,66 +4,87 @@ let
   helpers = import ./common.nix { inherit lib; };
 
   tests = [
-    (import ./networking.nix { inherit config helpers; })
-    (import ./storage.nix { inherit config helpers; })
-    (import ./users.nix { inherit config helpers; })
-    (import ./caddy.nix { inherit config helpers; })
-    (import ./dnsmasq.nix { inherit config helpers; })
-    (import ./jellyfin.nix { inherit config pkgs helpers; })
-    (import ./media-services.nix { inherit config helpers; })
-    (import ./seerr.nix { inherit config pkgs helpers; })
-    (import ./minecraft.nix { inherit config pkgs helpers; })
-    (import ./sops.nix { inherit config helpers; })
-    (import ./ddclient.nix { inherit config helpers; })
-    (import ./monitoring.nix { inherit config helpers; })
-    (import ./backups.nix { inherit config lib pkgs helpers; })
-    (import ./smartd.nix { inherit config helpers; })
-    (import ./scripts.nix { inherit config helpers; })
-    (import ./hardware.nix { inherit config helpers; })
-    (import ./invariants.nix { inherit config helpers; })
-    (import ./hardware-specific.nix { inherit config pkgs helpers; })
-    (import ./cockpit.nix { inherit config helpers; })
-    (import ./homepage.nix { inherit config pkgs lib  helpers unstable; })
-    (import ./ntfy.nix { inherit config unstable helpers; })
-    (import ./uptime-kuma.nix { inherit config pkgs lib helpers; })
-    (import ./beszel.nix { inherit config pkgs unstable lib helpers; })
-    (import ./immich.nix { inherit config lib unstable helpers; })
-    (import ./jenkins.nix { inherit config lib; })
-    (import ./nextcloud.nix { inherit config pkgs lib helpers; })
+    { name = "networking"; result = import ./networking.nix { inherit config helpers; }; }
+    { name = "service-exposure"; result = import ./service-exposure.nix { inherit config lib helpers; }; }
+    { name = "server-options"; result = import ./server-options.nix { inherit config helpers; }; }
+    { name = "storage"; result = import ./storage.nix { inherit config helpers; }; }
+    { name = "storage-volumes"; result = import ./storage-volumes.nix { inherit config helpers; }; }
+    { name = "users"; result = import ./users.nix { inherit config helpers; }; }
+    { name = "caddy"; result = import ./caddy.nix { inherit config helpers; }; }
+    { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config lib helpers; }; }
+    { name = "jellyfin"; result = import ./jellyfin.nix { inherit config pkgs helpers; }; }
+    { name = "media-services"; result = import ./media-services.nix { inherit config helpers; }; }
+    { name = "seerr"; result = import ./seerr.nix { inherit config pkgs helpers; }; }
+    { name = "minecraft"; result = import ./minecraft.nix { inherit config pkgs helpers; }; }
+    { name = "sops"; result = import ./sops.nix { inherit config helpers; }; }
+    { name = "ddclient"; result = import ./ddclient.nix { inherit config helpers; }; }
+    { name = "monitoring"; result = import ./monitoring.nix { inherit config helpers; }; }
+    { name = "backups"; result = import ./backups.nix { inherit config lib pkgs helpers; }; }
+    { name = "smartd"; result = import ./smartd.nix { inherit config helpers; }; }
+    { name = "scripts"; result = import ./scripts.nix { inherit config lib helpers; }; }
+    { name = "hardware"; result = import ./hardware.nix { inherit config helpers; }; }
+    { name = "invariants"; result = import ./invariants.nix { inherit config helpers; }; }
+    { name = "hardware-specific"; result = import ./hardware-specific.nix { inherit config pkgs helpers; }; }
+    { name = "cockpit"; result = import ./cockpit.nix { inherit config helpers; }; }
+    { name = "homepage"; result = import ./homepage.nix { inherit config pkgs lib helpers unstable; }; }
+    { name = "ntfy"; result = import ./ntfy.nix { inherit config unstable helpers; }; }
+    { name = "uptime-kuma"; result = import ./uptime-kuma.nix { inherit config pkgs lib helpers; }; }
+    { name = "beszel"; result = import ./beszel.nix { inherit config pkgs unstable lib helpers; }; }
+    { name = "immich"; result = import ./immich.nix { inherit config lib unstable helpers; }; }
+    { name = "jenkins"; result = import ./jenkins.nix { inherit config lib; }; }
+    { name = "nextcloud"; result = import ./nextcloud.nix { inherit config pkgs lib helpers; }; }
+    { name = "test-runner"; result = import ./test-runner.nix { inherit helpers; }; }
 
-    # Repository structure
-    (helpers.assertPathExists "flake.nix" ../flake.nix)
-    (helpers.assertPathExists "homelab host" ../hosts/homelab/default.nix)
-    (helpers.assertPathExists "hardware configuration" ../hosts/homelab/hardware-configuration.nix)
-    (helpers.assertPathExists "users configuration" ../hosts/homelab/users.nix)
-
-    # Scripts
-    (helpers.assertPathExists "homelab-backup-ntfy script" ../scripts/homelab-backup-ntfy)
-    (helpers.assertPathExists "homelab-disk-health script" ../scripts/homelab-disk-health)
-    (helpers.assertPathExists "homelab-storage-health script" ../scripts/homelab-storage-health)
-    (helpers.assertPathExists "homelab-storage-ntfy script" ../scripts/homelab-storage-ntfy)
-
-    # Documentation
-    (helpers.assertPathExists "README" ../README.md)
-    (helpers.assertPathExists "architecture documentation" ../docs/architecture.md)
-    (helpers.assertPathExists "backup documentation" ../docs/backup-and-restore.md)
-
-    # State version
-    (helpers.assertEqual
-      "NixOS state version"
-      "26.05"
-      config.system.stateVersion)
+    {
+      name = "repository and documentation";
+      result = [
+        (helpers.assertPathExists "flake.nix" ../flake.nix)
+        (helpers.assertPathExists "homelab host" ../hosts/homelab/default.nix)
+        (helpers.assertPathExists "hardware configuration" ../hosts/homelab/hardware-configuration.nix)
+        (helpers.assertPathExists "users configuration" ../hosts/homelab/users.nix)
+        (helpers.assertPathExists "homelab-backup-ntfy script" ../scripts/homelab-backup-ntfy)
+        (helpers.assertPathExists "homelab-disk-health script" ../scripts/homelab-disk-health)
+        (helpers.assertPathExists "homelab-storage-health script" ../scripts/homelab-storage-health)
+        (helpers.assertPathExists "homelab-storage-ntfy script" ../scripts/homelab-storage-ntfy)
+        (helpers.assertPathExists "README" ../README.md)
+        (helpers.assertPathExists "architecture documentation" ../docs/architecture.md)
+        (helpers.assertPathExists "backup documentation" ../docs/backup-and-restore.md)
+        (helpers.assertEqual "NixOS state version" "26.05" config.system.stateVersion)
+      ];
+    }
   ];
 
-  flattenedTests = lib.flatten tests;
   testCount = lib.foldl'
-    (count: test:
-      builtins.seq test (count + 1)
-    )
+    (count: test: count + helpers.evaluateTest test.name test.result)
     0
-    flattenedTests;
+    tests;
 in
 pkgs.runCommand "homelab-configuration-tests" {} ''
-  echo "All ${toString (builtins.length flattenedTests)} configuration assertions passed."
+  set -eu
+
+  check_generated_script() {
+    script="$1"
+    expected_assignment="$2"
+
+    if ! ${pkgs.gnugrep}/bin/grep -Fq -- "$expected_assignment" "$script"; then
+      echo "Expected notification assignment was not rendered in $script:"
+      echo "  $expected_assignment"
+      echo "Generated script contents:"
+      cat "$script"
+      exit 1
+    fi
+
+    if ${pkgs.gnugrep}/bin/grep -Fq "@NTFY_" "$script"; then
+      echo "Unresolved notification placeholder found in $script:"
+      cat "$script"
+      exit 1
+    fi
+  }
+
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-backup-ntfy".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.backupTopic}"}"}
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-storage-ntfy".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}"}
+  check_generated_script ${lib.escapeShellArg (toString config.environment.etc."homelab/scripts/homelab-disk-health".source)} ${lib.escapeShellArg "NTFY_URL=${lib.escapeShellArg "${config.server.notifications.ntfy.baseUrl}/${config.server.notifications.ntfy.systemTopic}"}"}
+
+  echo "All ${toString testCount} configuration assertions passed."
   touch $out
 ''

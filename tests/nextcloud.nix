@@ -2,6 +2,8 @@
 
 let
   nativeEnabled = config.services.nextcloud.enable;
+  applicationDataRoot =
+    config.server.storage.volumes.${config.server.storage.roles.applicationData}.mountPoint;
 
   packageVersion =
     if nativeEnabled
@@ -40,7 +42,7 @@ let
 
   nginxListen =
     if nativeEnabled
-    then config.services.nginx.virtualHosts."cloud.alexpaquette.dev".listen
+    then config.services.nginx.virtualHosts.${config.services.nextcloud.hostName}.listen
     else null;
 
   redisEnabled =
@@ -96,7 +98,7 @@ in
 
   (helpers.assertEqual
   "Nextcloud data directory"
-  "/mnt/myraid/Nextcloud"
+  "${applicationDataRoot}/Nextcloud"
   (if nativeEnabled
    then config.services.nextcloud.settings.datadirectory
    else null))
@@ -220,11 +222,11 @@ in
 
   (helpers.assertEqual
     "Nextcloud data ownership command"
-    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud /mnt/myraid/Nextcloud"
+    "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${applicationDataRoot}/Nextcloud"
     config.systemd.services.nextcloud-data-ownership.serviceConfig.ExecStart)
 
   (helpers.assertContains
-    "Nextcloud data ownership requires RAID mount"
-    "mnt-myraid.mount"
-    config.systemd.services.nextcloud-data-ownership.requires)
+    "Nextcloud data ownership requires its host data directory mount"
+    config.services.nextcloud.settings.datadirectory
+    config.systemd.services.nextcloud-data-ownership.unitConfig.RequiresMountsFor)
 ]

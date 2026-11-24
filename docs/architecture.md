@@ -41,6 +41,44 @@ This separation allows the operating environment to remain reproducible without 
                                     notifications
 ```
 
+## Host configuration boundary
+
+The reusable modules consume typed host values declared by `modules/server-options.nix`. The host composition root supplies the concrete environment through `hosts/<hostname>/network.nix` and `hosts/<hostname>/storage.nix`.
+
+The current interfaces are:
+
+- `server.network.*` for interface identity, static LAN address, gateway, DNS servers, DHCP range, reservations, trusted source CIDRs, and public DNS zone.
+- `server.services.*` for host-selected service hostnames and public, LAN-only, or loopback exposure policies. Service modules contribute their backend endpoint and direct TCP/UDP requirements.
+- `server.storage.volumes` for host-defined local filesystem resources. Each volume is declared once with its device, mount point, filesystem type, and mount options.
+- `server.storage.roles` for optional semantic references such as `applicationData` and `localBackup`.
+- `server.storage.raidDevice` for an optional host-specific RAID device monitored by storage health checks.
+- `server.secrets.*` for the encrypted SOPS file and age identity path.
+- `server.notifications.ntfy.*` for the notification base URL and topic names used by generated scripts.
+- `server.backups.remoteRepository` for the host-specific remote Restic repository URI.
+
+The storage module generates NixOS filesystem mount definitions from the host's volume inventory. Service modules resolve the logical role they require to a volume mount point, then retain ownership of application-specific subdirectories. Hosts can omit unused volumes and roles. Hardware-specific RAID assembly remains in the host's storage definition.
+
+The homelab declares its primary and backup disks once, then assigns `applicationData` and `localBackup` to those resources. The existing physical devices and mount points remain unchanged.
+
+## Optional module composition
+
+Hosts are composition roots. Each host selects its services and operational capabilities by importing the corresponding modules from its host configuration. A service module that is not imported should not configure that service or leave behind related integrations.
+
+Cross-cutting modules such as Caddy, dnsmasq, backups, monitoring, and storage health checks must be independently selectable where practical. They must not assume that every application is installed. When such an integration is selected, it should consume a declared service interface or capability rather than directly coupling itself to a particular application's implementation.
+
+Storage resources and logical roles are independent. A host may provide an `applicationData` role without a `localBackup` role, or omit host-provided data storage if its selected services do not need it. A backup volume and role are required only when the host selects modules that use local backup storage. RAID support is also optional.
+
+The configuration now uses generic volumes and optional logical storage roles, and service exposure is enforced by the shared Caddy, DNS, DDNS, and firewall selectors. LAN Caddy routes include trusted-source restrictions, direct LAN TCP/UDP ingress is limited by nftables source rules, and loopback services are excluded from external ingress. The synthetic second-host configuration remains the next architectural validation step. The backup module still aggregates several application-specific backup jobs; splitting those into service-owned backup integrations is a separate follow-up rather than a prerequisite for the current host interfaces.
+
+The module design follows SOLID at the configuration boundary:
+
+* **Single responsibility:** service modules own application configuration; capability modules own cross-cutting infrastructure.
+* **Open/closed composition:** hosts add or omit modules instead of editing a central list of all services.
+* **Interface segregation:** consumers receive focused options for the capabilities they use.
+* **Dependency inversion:** integrations depend on typed service/capability contracts rather than concrete application-module details.
+
+The synthetic second-host tests must verify that omitted services and capabilities produce no orphaned units, proxy routes, DNS records, backup jobs, or unused storage requirements.
+
 ## Networking
 
 The host provides the primary LAN infrastructure used by the server.
@@ -54,18 +92,29 @@ dnsmasq provides:
 * local service records
 * service discovery through the configured domain
 
+dnsmasq derives local DNS records from active service contracts in `server.services.*`. HTTP services are published when Caddy ingress is enabled; direct TCP/UDP services can publish independently. Loopback services are excluded, so DNS publication follows enabled service capabilities rather than a second manually maintained hostname list.
+
 Internal service names resolve to the host on the local network, while Caddy handles the corresponding HTTP/TLS routing.
 
 ### Caddy
 
 Caddy is the single reverse-proxy entry point for HTTP services.
 
-Two access patterns are used:
+The target design distinguishes three client access policies:
 
-* **public services** use externally reachable TLS endpoints
-* **internal services** use Caddy's internal TLS authority and are restricted to the LAN
+* **public** — accessible from outside the trusted LAN through an explicitly configured public ingress.
+* **lan** — accessible only from configured trusted local networks. Caddy must enforce source restrictions, or another ingress mechanism must provide equivalent controls.
+* **loopback** — accessible only to processes on the same host, with no LAN or public ingress.
 
-This keeps application services bound to local interfaces where possible rather than exposing individual application listeners directly.
+These policies are independent of the backend listener. For example, Jellyfin can listen on loopback while Caddy provides public access; Homepage can listen on loopback while Caddy exposes it only to LAN clients. Direct TCP/UDP services such as Minecraft declare their own ingress protocol and port rather than using Caddy.
+
+The homelab's intended assignments are Jellyfin (`public` through Caddy), Minecraft (`public` through direct TCP ingress), Beszel (`lan` through Caddy), and Homepage (`lan` through Caddy). The homelab declares these policies in its host service inventory. Other imported services are also classified there; service modules provide endpoints, while the host selects hostnames and exposure policy.
+
+Caddy consumes HTTP(S) service contracts and applies the declared access policy. The firewall consumes the ingress requirements and opens only the necessary ports and sources. Direct service ingress is handled by the relevant service/network integration.
+
+DNS is separate from exposure policy. Public DNS records and local DNS overrides do not authorize access. A public service may also have a local DNS override resolving to the server's LAN address. Conversely, a private DNS record does not make a route private.
+
+LAN-only Caddy routes combine `tls internal` with an explicit remote-source matcher that returns HTTP 403 to clients outside configured trusted networks. LAN-only direct TCP/UDP ingress is restricted by nftables source rules. Loopback services receive no external ingress. Actual public reachability still depends on router/NAT forwarding outside this repository.
 
 ## Application services
 
@@ -88,7 +137,7 @@ This keeps service-specific concerns isolated while allowing the host configurat
 
 ## Persistent storage
 
-The host uses separate storage roles for operating-system state, primary application/media data, and backups.
+The homelab currently uses separate physical storage resources for operating-system state, primary application/media data, and local backups. The reusable architecture should describe storage resources generically and assign optional logical roles to them.
 
 ```text
 System NVMe
@@ -111,7 +160,40 @@ Backup storage
 
 The large RAID-backed volume is treated as application/data storage rather than as an operating-system filesystem.
 
-The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository.
+The dedicated backup disk is mounted independently from the primary data volume and hosts the production Restic repository. Keeping these resources physically separate provides a different failure domain for local backups.
+
+The host declares each volume once:
+
+```nix
+server.storage.volumes = {
+  primary = {
+    device = "/dev/disk/by-uuid/<primary-volume-uuid>";
+    mountPoint = "/mnt/myraid";
+    fsType = "ext4";
+    options = [ "nofail" ];
+  };
+
+  backup = {
+    device = "/dev/disk/by-uuid/<backup-volume-uuid>";
+    mountPoint = "/mnt/backup";
+    fsType = "ext4";
+    options = [ "nofail" ];
+  };
+};
+
+server.storage.roles = {
+  applicationData = "primary";
+  localBackup = "backup";
+};
+```
+
+The storage module converts these resources into filesystem mounts. Service modules resolve logical roles rather than embedding physical volume names or mount paths. For example, Immich, Jellyfin, Nextcloud, and the media automation module consume the `applicationData` role; the Restic module consumes `localBackup`.
+
+A host without local backups can omit both the backup volume and the `localBackup` assignment, provided it also omits modules that require local backup storage. The role resolver reports a clear evaluation error when an imported consumer requires a role that is not assigned or references an unknown volume.
+
+Roles are references, not additional storage resources. Multiple roles may refer to the same volume when intentional, but this does not provide physical failure isolation. For the homelab, `applicationData` and `localBackup` continue to refer to separate physical resources.
+
+The volume interface currently models local filesystem mounts. RAID assembly remains host-specific; network and object-storage backends should be introduced only when a concrete host requires them. The storage module also checks that declared mount points are unique and that logical roles reference declared volumes.
 
 ## Databases
 
@@ -121,24 +203,26 @@ The database layer is kept separate from application binaries and is managed by 
 
 Database-backed backups use explicit PostgreSQL dumps rather than relying only on filesystem copies. Where application consistency requires it, the backup job temporarily places the relevant service into a consistent state before creating the dump and filesystem snapshot.
 
-## Secrets
+## Secrets and host environment configuration
 
-Secrets are managed with sops-nix.
+Secrets are managed with sops-nix. The host supplies the encrypted file and age identity through `server.secrets.sopsFile` and `server.secrets.ageKeyFile`; these values live in the host's `secrets.nix`. The reusable SOPS module consumes them while retaining the logical secret names and key mappings required by the selected services.
 
 The flow is:
 
 ```text
-Encrypted SOPS file
-        │
-        ▼
-      NixOS
-        │
-        ├── runtime secret files
-        ├── generated environment files
-        └── generated service configuration
+Host secret source + age identity
+              │
+              ▼
+            NixOS
+              │
+              ├── runtime secret files
+              ├── generated environment files
+              └── generated service configuration
 ```
 
-Secrets remain encrypted in Git and are materialized only on the host.
+Secret values remain encrypted in Git and are materialized only on the host. The SOPS file path and decryption-key path are host configuration, not reusable module defaults.
+
+The ntfy base URL and notification topic names are declared separately through `server.notifications.ntfy.*` and substituted into notification scripts during the build. The ntfy authentication token remains an SOPS-managed secret. The remote Restic repository URI is supplied through `server.backups.remoteRepository`; its access keys and repository password remain encrypted secrets.
 
 Examples include:
 
@@ -191,8 +275,10 @@ Failure paths send notifications through ntfy.
 Restic provides both a local recovery path and an off-site copy. Application snapshots are written to the local repository on the dedicated backup disk:
 
 ```text
-/mnt/backup/Restic/homelab
+${server.storage.volumes.<localBackup-role>.mountPoint}/Restic/${networking.hostName}
 ```
+
+The `localBackup` role resolves to the volume assigned by the host. For the homelab this resolves to `/mnt/backup/Restic/homelab`.
 
 The local repository is replicated to a separate Restic repository in Cloudflare R2:
 

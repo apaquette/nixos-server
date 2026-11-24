@@ -1,5 +1,9 @@
-{ config, unstable, ... }:
+{ config, lib, unstable, ... }:
 
+let
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Immich";
+in
 {
   services.immich = {
     enable = true;
@@ -9,7 +13,7 @@
     host = "127.0.0.1";
     port = 2283;
 
-    mediaLocation = "/mnt/myraid/Immich/library";
+    mediaLocation = "${applicationDataRoot}/Immich/library";
 
     machine-learning.enable = true;
     accelerationDevices = [ ];
@@ -30,8 +34,10 @@
     settings = null;
   };
 
-  systemd.services.immich-server = {
-    after = [ "mnt-myraid.mount" ];
-    requires = [ "mnt-myraid.mount" ];
-  };
+  server.services.immich.httpUpstream = lib.mkDefault
+    "${config.services.immich.host}:${toString config.services.immich.port}";
+
+  systemd.services.immich-server.unitConfig.RequiresMountsFor = [
+    config.services.immich.mediaLocation
+  ];
 }

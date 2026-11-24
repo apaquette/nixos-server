@@ -1,5 +1,8 @@
 { config, pkgs, lib, unstable, ... }:
 let
+  storage = import ./lib/storage.nix { inherit config; };
+  applicationDataRoot = storage.mountPointForRole "applicationData" "Nextcloud";
+
   calendar661 =
     unstable.nextcloud35Packages.apps.calendar.overrideAttrs (_: {
       name = "nextcloud-app-calendar-6.6.1";
@@ -43,7 +46,7 @@ in
 
     package = nextcloud35;
 
-    hostName = "cloud.alexpaquette.dev";
+    hostName = config.server.services.cloud.hostname;
 
     home = "/var/lib/nextcloud";
     datadir = "/var/lib/nextcloud";
@@ -65,18 +68,18 @@ in
     https = true;
 
     settings = {
-      datadirectory = "/mnt/myraid/Nextcloud";
+      datadirectory = "${applicationDataRoot}/Nextcloud";
 
       trusted_domains = [
-        "cloud.alexpaquette.dev"
+        config.server.services.cloud.hostname
       ];
 
       trusted_proxies = [
-        "192.168.2.20"
+        config.server.network.lanAddress
       ];
 
       overwriteprotocol = "https";
-      "overwrite.cli.url" = "https://cloud.alexpaquette.dev";
+      "overwrite.cli.url" = "https://${config.server.services.cloud.hostname}";
     };
 
     configureRedis = true;
@@ -101,7 +104,7 @@ in
     "f /var/lib/nextcloud/config/config.php 0640 nextcloud nextcloud - -"
   ];
 
-  services.nginx.virtualHosts."cloud.alexpaquette.dev" = {
+  services.nginx.virtualHosts.${config.services.nextcloud.hostName} = {
     listen = lib.mkForce [
       {
         addr = "127.0.0.1";
@@ -109,6 +112,8 @@ in
       }
     ];
   };
+
+  server.services.cloud.httpUpstream = lib.mkDefault "127.0.0.1:8081";
 
   services.postgresql = {
     enable = true;
@@ -128,8 +133,9 @@ in
   systemd.services.nextcloud-data-ownership = {
     description = "Normalize Nextcloud data directory ownership";
 
-    after = [ "mnt-myraid.mount" ];
-    requires = [ "mnt-myraid.mount" ];
+    unitConfig.RequiresMountsFor = [
+      config.services.nextcloud.settings.datadirectory
+    ];
 
     before = [
       "nextcloud-setup.service"
@@ -144,7 +150,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart =
-        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud /mnt/myraid/Nextcloud";
+        "${pkgs.coreutils}/bin/chown -R nextcloud:nextcloud ${applicationDataRoot}/Nextcloud";
       RemainAfterExit = true;
     };
   };

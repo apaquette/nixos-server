@@ -2,14 +2,12 @@
 { config, lib, pkgs, ... }:
 
 let
-  repository = "/mnt/backup/Restic/homelab";
+  storage = import ./lib/storage.nix { inherit config; };
+  localBackupRoot = storage.mountPointForRole "localBackup" "Restic backup module";
+  repository = "${localBackupRoot}/Restic/${config.networking.hostName}";
   passwordFile = config.sops.secrets."restic-repository-password".path;
 
-  r2AccountId = "08a653e653431727545c1cbbc844423d";
-  r2Bucket = "homelab-restic";
-  r2Prefix = "homelab";
-
-  r2Repository = "s3:https://${r2AccountId}.r2.cloudflarestorage.com/${r2Bucket}/${r2Prefix}";
+  r2Repository = config.server.backups.remoteRepository;
 
   immichUploadLocation = builtins.dirOf config.services.immich.mediaLocation;
 
@@ -449,17 +447,12 @@ let
 
         after = [
           "network-online.target"
-          "mnt-backup.mount"
           "restic-backups-maintenance.service"
           "restic-backups-check.service"
         ];
 
         wants = [
           "network-online.target"
-        ];
-
-        requires = [
-          "mnt-backup.mount"
         ];
 
         onFailure = [
