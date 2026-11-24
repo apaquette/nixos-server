@@ -100,25 +100,33 @@ with helpers;
     false
     (builtins.elem 45876 config.networking.firewall.allowedTCPPorts))
 
-  (assertContains
+  (assertEqual
     "LAN-only Homepage route requires internal TLS"
-    "tls internal"
-    config.services.caddy.virtualHosts."homepage.alexpaquette.dev".extraConfig)
+    true
+    (lib.hasInfix
+      "tls internal"
+      config.services.caddy.virtualHosts."homepage.alexpaquette.dev".extraConfig))
 
-  (assertContains
+  (assertEqual
     "LAN-only Homepage route denies non-trusted clients"
-    "@denied not remote_ip 192.168.2.0/24"
-    config.services.caddy.virtualHosts."homepage.alexpaquette.dev".extraConfig)
+    true
+    (lib.hasInfix
+      "@denied not remote_ip 192.168.2.0/24"
+      config.services.caddy.virtualHosts."homepage.alexpaquette.dev".extraConfig))
 
-  (assertContains
+  (assertEqual
     "LAN-only Beszel route denies non-trusted clients"
-    "@denied not remote_ip 192.168.2.0/24"
-    config.services.caddy.virtualHosts."beszel.alexpaquette.dev".extraConfig)
+    true
+    (lib.hasInfix
+      "@denied not remote_ip 192.168.2.0/24"
+      config.services.caddy.virtualHosts."beszel.alexpaquette.dev".extraConfig))
 
-  (assertContains
+  (assertEqual
     "public Jellyfin route has no LAN-only matcher"
-    "reverse_proxy 127.0.0.1:8096"
-    config.services.caddy.virtualHosts."jellyfin.alexpaquette.dev".extraConfig)
+    true
+    (lib.hasInfix
+      "reverse_proxy 127.0.0.1:8096"
+      config.services.caddy.virtualHosts."jellyfin.alexpaquette.dev".extraConfig))
 
   (assertEqual
     "public Minecraft TCP port is allowed"
