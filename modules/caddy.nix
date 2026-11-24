@@ -3,13 +3,9 @@
 let
   services = config.server.services;
   network = config.server.network;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
 
-  httpServices = lib.filterAttrs
-    (_: service:
-      service.httpUpstream != null
-      && service.hostname != null
-      && service.exposure != "loopback")
-    services;
+  httpServices = serviceExposure.httpServices services;
 
   mkVirtualHost = _: service:
     let
