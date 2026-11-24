@@ -14,6 +14,11 @@ with helpers;
     config.sops.age.keyFile)
 
   (assertEqual
+    "Host SOPS file is the configured decryption source"
+    "homelab.yaml"
+    (builtins.baseNameOf (toString config.sops.defaultSopsFile)))
+
+  (assertEqual
     "Nextcloud SOPS key"
     "nextcloud/postgres_password"
     config.sops.secrets."nextcloud-postgres-password".key)
