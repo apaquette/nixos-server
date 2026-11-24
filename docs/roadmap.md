@@ -483,7 +483,7 @@ A future architectural change that accidentally introduces a hardcoded host assu
 
 ## Continuous integration
 
-**Status: Implemented; required branch protection remains a repository-setting action.**
+**Status: CI jobs implemented and passing; required branch protection remains outstanding.**
 
 The GitHub Actions workflow runs for pushes and pull requests targeting `main` or `dev`. It separates validation into stable jobs:
 
@@ -497,13 +497,13 @@ Separating these checks makes failures attributable to a specific validation sta
 
 The exact job names and local commands are documented in [CI and required checks](ci.md).
 
-**Merge protection:** CI failures produce failed checks, but GitHub will not block merges until the required status checks are enabled in a branch protection rule or repository ruleset. The `dev` branch must require all five CI jobs before Phase 6 can be considered fully enforced.
+**Merge protection:** CI failures produce failed checks, but GitHub will not block merges until the required status checks are enabled in a branch protection rule or repository ruleset. The `dev` branch currently has no active required-status-check enforcement. It must require all five CI jobs before Phase 6 can be considered fully enforced.
 
 ---
 
 ## NixOS VM testing
 
-**Status: Integrated into CI.**
+**Status: Integrated into CI and passing.**
 
 The existing VM test is exposed as `checks.x86_64-linux.homelab-vm` and executed by GitHub Actions.
 
