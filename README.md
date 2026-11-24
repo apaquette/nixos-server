@@ -181,20 +181,23 @@ Detailed procedures are documented in [`docs/backup-and-restore.md`](docs/backup
 Configuration changes are validated before activation:
 
 ```bash
-nix flake check
+nix flake check --print-build-logs
 sudo nixos-rebuild build --flake ~/Projects/homelab#homelab
 ```
 
-The project contains declarative configuration assertions and NixOS VM tests for important invariants such as:
+GitHub Actions separately evaluates the flake, builds the declarative and multi-host checks, builds both the homelab and synthetic NixOS system closures, and executes the NixOS VM integration test. The VM test uses a disposable tmpfs volume and does not touch production storage.
 
-* enabled services
-* service dependencies
-* storage configuration
-* DNS configuration
-* secret wiring
-* backup configuration
-* monitoring
-* removal of obsolete service definitions
+The tests cover important invariants such as:
+
+* enabled services and service dependencies
+* network and service exposure configuration
+* storage declarations and mount dependencies
+* DNS configuration and host isolation
+* generated notification script settings
+* monitoring services and timers
+* backup configuration and removal of obsolete service definitions
+
+See [CI and required checks](docs/ci.md) for the workflow and branch-protection setup.
 
 The production configuration is then activated with:
 
@@ -252,6 +255,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the detailed milestones and enginee
 * [Backup and Restore](docs/backup-and-restore.md)
 * [Disaster Recovery](docs/disaster-recovery.md)
 * [Roadmap](docs/roadmap.md)
+* [CI and required checks](docs/ci.md)
 
 ## License
 
