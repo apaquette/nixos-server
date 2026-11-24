@@ -104,6 +104,12 @@ Application services are managed as native NixOS services where practical. Persi
 │   └── homelab/
 │       ├── default.nix
 │       ├── hardware-configuration.nix
+│       ├── network.nix
+│       ├── storage.nix
+│       ├── services.nix
+│       ├── notifications.nix
+│       ├── secrets.nix
+│       ├── backup.nix
 │       └── users.nix
 ├── modules/
 │   ├── backups.nix
