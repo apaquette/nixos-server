@@ -63,4 +63,6 @@ Configure these as required status checks for the `dev` branch (and `main` if di
 4. Select all five check names listed above.
 5. Save the rule and verify that a pull request cannot merge while one of the required checks is failing.
 
+**Current repository state:** the `dev` branch is not enforcing required status checks. Its branch-protection status currently reports no active required-check enforcement. The five checks above must still be added to the branch protection rule or repository ruleset.
+
 A successful Actions workflow is not, by itself, a merge block. Required status checks must be enabled in repository settings for GitHub to enforce them.
