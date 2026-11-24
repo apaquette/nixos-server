@@ -483,66 +483,43 @@ A future architectural change that accidentally introduces a hardcoded host assu
 
 ## Continuous integration
 
-Add CI validation for the repository.
+**Status: Implemented; required branch protection remains a repository-setting action.**
 
-Initial checks:
+The GitHub Actions workflow runs for pushes and pull requests targeting `main` or `dev`. It separates validation into stable jobs:
 
-* `nix flake check`
-* Nix evaluation
-* configuration builds
-* repository-level tests
+* Flake evaluation without building derivations.
+* Declarative configuration and multi-host regression tests.
+* Production homelab system build.
+* Synthetic system build.
+* NixOS VM integration test.
 
-As the host abstraction develops, CI should validate more than a single concrete deployment.
+Separating these checks makes failures attributable to a specific validation stage and exposes stable status names that can be selected as required checks in GitHub branch protection.
 
-The intended direction is:
+The exact job names and local commands are documented in [CI and required checks](ci.md).
 
-```text
-Shared modules
-      ↓
-Host A evaluation
-      ↓
-Host B evaluation
-      ↓
-Configuration tests
-      ↓
-Build validation
-```
-
-Future checks can include formatting, static analysis, and other repository-level quality gates.
+**Merge protection:** CI failures produce failed checks, but GitHub will not block merges until the required status checks are enabled in a branch protection rule or repository ruleset. The `dev` branch must require all five CI jobs before Phase 6 can be considered fully enforced.
 
 ---
 
 ## NixOS VM testing
 
-Expand the existing configuration tests into realistic VM-based integration tests.
+**Status: Integrated into CI.**
 
-Potential scenarios:
+The existing VM test is exposed as `checks.x86_64-linux.homelab-vm` and executed by GitHub Actions.
 
-* service startup
-* storage declarations
-* networking configuration
-* reverse-proxy configuration
-* secret wiring
-* systemd dependency behaviour
-* backup service configuration
-* host-specific configuration overrides
-* service dependency ordering
+The test boots a minimal NixOS VM and verifies:
 
-VM tests should complement, rather than replace, the existing declarative configuration tests.
+* system health reaches `running`;
+* disk-health and storage-health timers are enabled and active;
+* a disposable tmpfs storage volume is mounted;
+* the storage-health systemd service declares the mount dependency and completes successfully;
+* the disk-health service executes against the VM filesystems;
+* generated notification scripts use the VM's configured ntfy endpoint and topics;
+* generated scripts contain no unresolved notification placeholders.
 
-The goal is to test both:
+The temporary volume exercises storage and systemd dependencies without requiring production disks, RAID, secrets, or physical homelab access.
 
-```text
-configuration contract
-```
-
-and:
-
-```text
-runtime behaviour
-```
-
-before changes reach the production host.
+VM testing complements rather than replaces declarative configuration assertions. It validates both the configuration contract and selected runtime behaviour before changes reach the production host.
 
 ---
 
