@@ -18,14 +18,32 @@ pkgs.testers.nixosTest {
       backupTopic = "test-backup";
     };
 
-    server.storage.raidDevice = null;
+    # Use a disposable tmpfs volume to exercise storage mount dependencies
+    # without attaching or modifying any physical test/production device.
+    server.storage = {
+      raidDevice = null;
+      volumes.vmTest = {
+        device = "tmpfs";
+        mountPoint = "/mnt/testvolume";
+        fsType = "tmpfs";
+        options = [ "mode=0755" ];
+      };
+    };
 
     # Use the VM's normal test networking rather than the production
     # homelab interface configuration.
     networking.useDHCP = true;
 
-    # The VM does not have the production storage devices.
-    services.fstrim.enable = false;
+    # Provide an isolated tmpfs mount for the storage-health service.
+    # The service's RequiresMountsFor dependency must activate this mount.
+    systemd.mounts = [
+      {
+        what = "tmpfs";
+        where = "/mnt/testvolume";
+        type = "tmpfs";
+        options = "mode=0755";
+      }
+    ];
 
     # The production scripts are installed declaratively.
     environment.systemPackages = [
@@ -57,5 +75,24 @@ pkgs.testers.nixosTest {
     # The timers should be active after reaching multi-user.target.
     machine.succeed("systemctl is-active homelab-disk-health.timer")
     machine.succeed("systemctl is-active homelab-storage-health.timer")
+
+    # Both health-check services inspect the host-declared storage mounts.
+    # Verify the dependency and allow systemd to activate the tmpfs mount.
+    machine.succeed("systemctl show homelab-disk-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
+    machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
+
+    # Execute both health checks against the VM's root filesystem and tmpfs
+    # storage volume. The storage check must create and remove its test file.
+    machine.succeed("systemctl start homelab-disk-health.service")
+    machine.succeed("systemctl start homelab-storage-health.service")
+    machine.succeed("systemctl is-active mnt-testvolume.mount")
+    machine.succeed("findmnt --mountpoint /mnt/testvolume")
+    machine.succeed("test ! -e /mnt/testvolume/.homelab-storage-health-test")
+
+    # Verify the generated scripts consume this VM's notification settings.
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-system' /etc/homelab/scripts/homelab-disk-health")
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-system' /etc/homelab/scripts/homelab-storage-ntfy")
+    machine.succeed("grep -Fx 'NTFY_URL=https://notifications.example.test/test-backup' /etc/homelab/scripts/homelab-backup-ntfy")
+    machine.succeed("! grep -Fq '@NTFY_' /etc/homelab/scripts/homelab-disk-health /etc/homelab/scripts/homelab-storage-health /etc/homelab/scripts/homelab-storage-ntfy /etc/homelab/scripts/homelab-backup-ntfy")
   '';
 }

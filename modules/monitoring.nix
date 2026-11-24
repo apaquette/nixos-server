@@ -30,6 +30,10 @@ in
       "local-fs.target"
     ];
 
+    # homelab-disk-health iterates every configured storage mount, so it must
+    # not run until those mounts have been activated.
+    unitConfig.RequiresMountsFor = storageMountPoints;
+
     path = service-paths;
 
     serviceConfig = {

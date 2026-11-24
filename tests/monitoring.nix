@@ -14,6 +14,13 @@ with helpers;
     config.systemd.timers.homelab-storage-health.timerConfig.OnUnitActiveSec)
 
   (assertEqual
+    "disk health required mounts"
+    (map
+      (volume: volume.mountPoint)
+      (builtins.attrValues config.server.storage.volumes))
+    config.systemd.services.homelab-disk-health.unitConfig.RequiresMountsFor)
+
+  (assertEqual
     "storage health required mounts"
     (map
       (volume: volume.mountPoint)

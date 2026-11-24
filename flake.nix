@@ -70,6 +70,10 @@ outputs = { self, nixpkgs, nixpkgs-unstable, sops-nix, ... }:
           homelab = nixosConfiguration;
           synthetic = syntheticConfiguration;
         };
+
+      homelab-vm = import ./tests/vm.nix {
+        inherit pkgs lib;
+      };
     };
   };
 }
