@@ -17,6 +17,7 @@
 
   # This configuration is evaluated and checked in CI; it is not deployed.
   boot.isContainer = true;
+  networking.useHostResolvConf = false;
   fileSystems."/" = {
     device = "none";
     fsType = "tmpfs";
