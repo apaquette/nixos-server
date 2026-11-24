@@ -232,7 +232,7 @@ The v1.0.0 milestone established the declarative NixOS infrastructure and native
 | **v1.0.0** | NixOS migration, native services, sops-nix, local Restic backups | Complete |
 | **v1.1.0** | Off-site backups, retention, restore testing, disaster recovery | Complete |
 | **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |
-| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Production release pending |
+| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Complete |
 | **v1.4.0** | Backup freshness, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Second host, WireGuard, selective infrastructure redundancy | Future |
 
