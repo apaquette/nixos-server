@@ -76,8 +76,9 @@ pkgs.testers.nixosTest {
     machine.succeed("systemctl is-active homelab-disk-health.timer")
     machine.succeed("systemctl is-active homelab-storage-health.timer")
 
-    # Verify that the storage-health service declares the configured mount
-    # dependency. Starting the service must activate the tmpfs mount first.
+    # Both health-check services inspect the host-declared storage mounts.
+    # Verify the dependency and allow systemd to activate the tmpfs mount.
+    machine.succeed("systemctl show homelab-disk-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
     machine.succeed("systemctl show homelab-storage-health.service -p RequiresMountsFor --value | grep -F /mnt/testvolume")
 
     # Execute both health checks against the VM's root filesystem and tmpfs
