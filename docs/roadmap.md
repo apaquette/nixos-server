@@ -765,10 +765,10 @@ The roadmap is intentionally ordered by operational and architectural value:
 |---|---|---|
 | **v1.0.0** | NixOS infrastructure and native service architecture | Complete |
 | **v1.1.0** | Off-site backups, automated restore testing, disaster recovery | Complete |
-| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | In progress |\n| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | Planned |
+| **v1.2.0** | Namecheap Dynamic DNS for public IPv4 records | Complete |\n| **v1.3.0** | Host-agnostic architecture, multi-host testing, CI, deployment validation | In progress |
 | **v1.4.0** | Backup observability, SMART monitoring, recovery alerting | Planned |
 | **v2.0.0** | Secondary host, WireGuard, selective redundancy | Future |
 
 The v1.1.0 milestone establishes an independently hosted backup copy, automated repository verification, representative restore testing, and documented disaster recovery.
 
-The next release, v1.2.0, adds Namecheap Dynamic DNS to keep the homelab's public IPv4 records up to date. The next engineering milestone is v1.3.0: make the existing infrastructure reusable across multiple hosts, establish multi-host configuration tests, and strengthen CI and deployment validation before introducing distributed infrastructure.
+v1.2.0 is complete. v1.3.0 is in progress: the typed host network and storage interfaces, generic storage roles, service exposure contracts, and shared ingress policies are implemented. The remaining work is to complete host-owned environment configuration, add a synthetic second-host regression configuration, expand VM and CI coverage, and formalize deployment validation and release.
