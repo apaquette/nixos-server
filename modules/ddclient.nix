@@ -2,17 +2,10 @@
 
 let
   publicDomain = config.server.network.publicDomain;
+  serviceExposure = import ./lib/service-exposure.nix { inherit lib; };
 
-  publicServices = lib.filterAttrs
-    (_: service:
-      service.exposure == "public"
-      && service.hostname != null
-      && (
-        (service.httpUpstream != null && config.services.caddy.enable)
-        || service.tcpPorts != [ ]
-        || service.udpPorts != [ ]
-      ))
-    config.server.services;
+  publicServices =
+    serviceExposure.publicServices config.services.caddy.enable config.server.services;
 
   publicHostnames = map
     (service: service.hostname)
@@ -50,6 +43,7 @@ in
       # Namecheap Dynamic DNS updates A records. Do not attempt an AAAA update.
       usev4 = "webv4, webv4=ipify-ipv4";
       usev6 = "";
+
     };
 
     # ddclient runs with DynamicUser=true. Grant it read access only to the
