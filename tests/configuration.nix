@@ -11,7 +11,7 @@ let
     { name = "storage-volumes"; result = import ./storage-volumes.nix { inherit config helpers; }; }
     { name = "users"; result = import ./users.nix { inherit config helpers; }; }
     { name = "caddy"; result = import ./caddy.nix { inherit config helpers; }; }
-    { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config helpers; }; }
+    { name = "dnsmasq"; result = import ./dnsmasq.nix { inherit config lib helpers; }; }
     { name = "jellyfin"; result = import ./jellyfin.nix { inherit config pkgs helpers; }; }
     { name = "media-services"; result = import ./media-services.nix { inherit config helpers; }; }
     { name = "seerr"; result = import ./seerr.nix { inherit config pkgs helpers; }; }
