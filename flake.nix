@@ -42,13 +42,32 @@ outputs = { self, nixpkgs, nixpkgs-unstable, sops-nix, ... }:
         sops-nix.nixosModules.sops
       ];
     };
+
+    syntheticConfiguration = lib.nixosSystem {
+      inherit system;
+
+      modules = [
+        ./hosts/synthetic
+      ];
+    };
   in
   {
-    nixosConfigurations.homelab = nixosConfiguration;
+    nixosConfigurations = {
+      homelab = nixosConfiguration;
+      synthetic = syntheticConfiguration;
+    };
+
     checks.${system}.configuration =
       import ./tests/configuration.nix {
         inherit pkgs lib unstable;
         config = nixosConfiguration.config;
       };
-   };
+
+    checks.${system}.multi-host =
+      import ./tests/multi-host.nix {
+        inherit pkgs lib;
+        homelab = nixosConfiguration;
+        synthetic = syntheticConfiguration;
+      };
+  };
 }
