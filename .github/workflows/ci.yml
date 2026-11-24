@@ -10,10 +10,18 @@ on:
       - main
       - dev
 
+permissions:
+  contents: read
+
+concurrency:
+  group: nixos-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
-    name: Check NixOS configuration
+  flake:
+    name: Flake evaluation
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -22,8 +30,78 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v20
 
-      - name: Check flake
-        run: nix flake check --print-build-logs
+      - name: Evaluate flake outputs
+        run: nix flake check --no-build --print-build-logs
 
-      - name: Build NixOS configuration
-        run: nix build .#nixosConfigurations.homelab.config.system.build.toplevel
+  declarative-tests:
+    name: Declarative configuration tests
+    needs: flake
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+
+      - name: Build declarative test checks
+        run: >
+          nix build --no-link --print-build-logs
+          .#checks.x86_64-linux.configuration
+          .#checks.x86_64-linux.multi-host
+
+  homelab-build:
+    name: Build homelab system
+    needs: flake
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+
+      - name: Build production configuration
+        run: >
+          nix build --no-link --print-build-logs
+          .#nixosConfigurations.homelab.config.system.build.toplevel
+
+  synthetic-build:
+    name: Build synthetic system
+    needs: flake
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+
+      - name: Build synthetic configuration
+        run: >
+          nix build --no-link --print-build-logs
+          .#nixosConfigurations.synthetic.config.system.build.toplevel
+
+  vm-test:
+    name: Homelab VM integration test
+    needs: flake
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+
+      - name: Run NixOS VM integration test
+        run: >
+          nix build --no-link --print-build-logs
+          .#checks.x86_64-linux.homelab-vm
